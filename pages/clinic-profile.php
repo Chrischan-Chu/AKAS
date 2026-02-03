@@ -10,6 +10,7 @@ if (strpos($return, $baseUrl) !== 0) {
 include "../includes/partials/head.php";
 ?>
 <body class="bg-blue-100">
+<?php include "../includes/partials/navbar.php"; ?>
 
 <!-- HEADER -->
 <section class="py-6 text-center text-white" style="background:var(--secondary)">
@@ -186,10 +187,14 @@ include "../includes/partials/head.php";
 <!-- DOCTORS -->
 <section class="py-10 px-4">
   <div class="max-w-6xl mx-auto">
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       <?php for($i=1;$i<=3;$i++): ?>
-        <a href="doctor-profile.php?id=<?php echo urlencode($i); ?>&clinic_id=<?php echo urlencode($_GET['id'] ?? 1); ?>&return=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>">
+        <a
+          href="<?php echo $baseUrl; ?>/pages/doctor-profile.php?id=<?php echo urlencode($i); ?>&clinic_id=<?php echo urlencode($_GET['id'] ?? 1); ?>&return=<?php echo urlencode($_SERVER['REQUEST_URI']); ?>"
+          class="doctorCard block"
+          data-doctor-id="<?php echo (int)$i; ?>"
+          data-clinic-id="<?php echo (int)($_GET['id'] ?? 1); ?>"
+        >
           <div class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition">
             <div class="flex items-center justify-center py-6">
               <img src="https://cdn-icons-png.flaticon.com/512/387/387561.png" class="w-20" alt="Doctor">
@@ -201,10 +206,32 @@ include "../includes/partials/head.php";
           </div>
         </a>
       <?php endfor; ?>
-
     </div>
   </div>
 </section>
+
+<!-- Doctor Profile Modal (hidden by default) -->
+<div id="doctorModal" class="fixed inset-0 z-[9999] hidden" aria-hidden="true">
+  <div id="doctorBackdrop" class="absolute inset-0 bg-black/55 backdrop-blur-sm"></div>
+
+  <div class="relative h-full w-full flex items-center justify-center p-4 sm:p-6">
+    <div class="w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/40">
+      <div class="flex items-center justify-between px-5 py-4" style="background: rgba(64,183,255,.12);">
+        <h3 class="font-extrabold" style="color: var(--secondary);">Doctor Profile</h3>
+        <button id="closeDoctorModal"
+                class="h-10 w-10 rounded-full bg-white border border-slate-200 hover:bg-slate-50 flex items-center justify-center"
+                aria-label="Close">
+          ✕
+        </button>
+      </div>
+
+      <div id="doctorModalBody" class="p-5 sm:p-6">
+        <div class="text-slate-600 text-sm">Loading…</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 <script>
 (function () {
@@ -262,6 +289,64 @@ include "../includes/partials/head.php";
   bookBtn.addEventListener("click", () => { alert(`Booking (UI only)\nDate: ${selectedDate ? toYMD(selectedDate) : "None"}\nTime: ${selectedSlot || "None"}`); });
   renderCalendar();
 })();
+
+(function () {
+  const modal = document.getElementById("doctorModal");
+  const body  = document.getElementById("doctorModalBody");
+  const closeBtn = document.getElementById("closeDoctorModal");
+  const backdrop = document.getElementById("doctorBackdrop");
+
+  function openModal() {
+    modal.classList.remove("hidden");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeModal() {
+    modal.classList.add("hidden");
+    modal.setAttribute("aria-hidden", "true");
+    body.innerHTML = '<div class="text-slate-600 text-sm">Loading…</div>';
+    document.body.style.overflow = "";
+  }
+
+  closeBtn?.addEventListener("click", closeModal);
+  backdrop?.addEventListener("click", closeModal);
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && !modal.classList.contains("hidden")) closeModal();
+  });
+
+  // ✅ Only opens when a doctor is clicked
+  document.addEventListener("click", async (e) => {
+    const card = e.target.closest(".doctorCard");
+    if (!card) return;
+
+    e.preventDefault();
+
+    const doctorId = card.dataset.doctorId;
+    const clinicId = card.dataset.clinicId || "";
+
+    if (!doctorId) return;
+
+    openModal();
+
+    try {
+      const url = `<?php echo $baseUrl; ?>/pages/doctor-modal.php?id=${encodeURIComponent(doctorId)}&clinic_id=${encodeURIComponent(clinicId)}`;
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("Failed to load doctor profile");
+
+      body.innerHTML = await res.text();
+    } catch (err) {
+      console.error(err);
+      body.innerHTML = `
+        <div class="rounded-2xl bg-slate-50 border border-slate-200 p-6">
+          <p class="font-extrabold text-slate-900">Couldn’t load doctor profile.</p>
+          <p class="text-sm text-slate-600 mt-1">Please try again.</p>
+        </div>
+      `;
+    }
+  });
+})();
 </script>
-</body>
-</html>
+
+<?php include "../includes/partials/footer.php"; ?>
+

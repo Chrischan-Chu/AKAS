@@ -1,87 +1,250 @@
-
 <?php
-// pages/clinics-all.php — All Clinics page (standalone)
+// pages/clinics-all.php — All Clinics page (with working tabs + search filter)
 $appTitle  = "AKAS | All Clinics";
 $baseUrl   = "/AKAS";
 include __DIR__ . "/../includes/partials/head.php";
+
+// Tabs
+$tabs = [
+  "all"       => "All",
+  "general"   => "General",
+  "dental"    => "Dental",
+  "pediatric" => "Pediatric",
+  "derma"     => "Derma",
+];
+
+// Get active tab + query (shareable URL)
+$activeTab = $_GET["tab"] ?? "all";
+if (!isset($tabs[$activeTab])) $activeTab = "all";
+$q = trim($_GET["q"] ?? "");
+
+// ✅ SAMPLE DATA (Replace this with DB fetch later)
+$clinics = [
+  ["id"=>1, "name"=>"Angeles Care Clinic", "specialty"=>"General Medicine", "barangay"=>"Balibago", "category"=>"general"],
+  ["id"=>2, "name"=>"SmileBright Dental", "specialty"=>"Dentistry", "barangay"=>"Sto. Rosario", "category"=>"dental"],
+  ["id"=>3, "name"=>"KidsFirst Pediatric", "specialty"=>"Pediatrics", "barangay"=>"Cutcut", "category"=>"pediatric"],
+  ["id"=>4, "name"=>"SkinLab Derma Center", "specialty"=>"Dermatology", "barangay"=>"Pampang", "category"=>"derma"],
+  ["id"=>5, "name"=>"Prime Health Clinic", "specialty"=>"General Medicine", "barangay"=>"Pulungbulu", "category"=>"general"],
+  ["id"=>6, "name"=>"Tooth & Co.", "specialty"=>"Orthodontics", "barangay"=>"Balibago", "category"=>"dental"],
+  ["id"=>7, "name"=>"Little Steps Clinic", "specialty"=>"Pediatrics", "barangay"=>"Tabun", "category"=>"pediatric"],
+  ["id"=>8, "name"=>"Glow Dermatology", "specialty"=>"Dermatology", "barangay"=>"Sto. Domingo", "category"=>"derma"],
+  ["id"=>9, "name"=>"CityCare Clinic", "specialty"=>"Family Medicine", "barangay"=>"Mining", "category"=>"general"],
+  ["id"=>10,"name"=>"BrightBite Dental Hub", "specialty"=>"Dentistry", "barangay"=>"Salapungan", "category"=>"dental"],
+];
 ?>
 
-<body class="bg-blue-100">
+<body class="min-h-screen flex flex-col bg-gradient-to-br from-white to-[var(--secondary)]/40">
 
 <?php include __DIR__ . "/../includes/partials/navbar.php"; ?>
 
-<main class="px-4 py-10">
-  <div class="max-w-4xl mx-auto">
+<main class="flex-1 px-4 sm:px-6 lg:px-8 py-8 sm:py-10">
+  <div class="max-w-6xl mx-auto">
 
-    <div class="flex items-center justify-between gap-4 mb-6">
-      <div>
-        <h1 class="text-3xl font-bold text-white">All Clinics</h1>
-        <p class="text-white/90 text-sm mt-1">Search and browse clinics</p>
+    <!-- Header Card -->
+    <section class="rounded-3xl p-6 sm:p-8 bg-white/70 backdrop-blur border border-white/60 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <div>
+          <p class="text-[var(--secondary)] font-semibold tracking-wide uppercase text-xs">
+            Browse
+          </p>
+          <h1 class="text-2xl sm:text-3xl font-extrabold text-[var(--primary)] leading-tight">
+            Clinics
+          </h1>
+          <p class="text-slate-600 text-sm mt-1">
+            Find the right clinic and book an appointment.
+          </p>
+        </div>
+
+        <a href="<?php echo $baseUrl; ?>/index.php#clinics"
+           class="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full font-semibold text-white transition
+                  hover:opacity-95 active:scale-[0.99] w-full sm:w-auto"
+           style="background: var(--primary);">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+          Back to Home
+        </a>
       </div>
-      <a href="<?php echo $baseUrl; ?>/index.php#clinics"
-         class="px-5 py-2 rounded-full font-semibold text-white transition-all duration-300"
-         style="background-color: var(--primary);">
-        Back to Home
-      </a>
-    </div>
 
-    <!-- SEARCH FILTER -->
-    <div class="search-box text-white rounded-2xl p-6 mb-8">
-      <h5 class="text-center mb-4 font-semibold">FIND A CLINIC NEAR YOU</h5>
-      <form class="grid grid-cols-1 md:grid-cols-3 gap-3" onsubmit="return false;">
-        <div>
-          <input type="text" class="w-full px-4 py-2 rounded-full text-gray-900" placeholder="Name">
+      <!-- Tabs + Search (aligned + balanced) -->
+      <div class="mt-6 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+
+        <!-- LEFT: Tabs -->
+        <div class="flex-shrink-0">
+          <div class="inline-flex gap-2 p-1 rounded-full bg-white border border-slate-200 shadow-sm">
+
+            <?php foreach ($tabs as $key => $label): ?>
+              <?php
+                $isActive = ($key === $activeTab);
+                $tabUrl = $baseUrl . "/pages/clinics-all.php?tab=" . urlencode($key) . "&q=" . urlencode($q);
+              ?>
+              <a href="<?php echo htmlspecialchars($tabUrl); ?>"
+                class="px-5 py-2 rounded-full text-sm font-semibold transition whitespace-nowrap
+                        <?php echo $isActive ? 'text-white' : 'text-slate-700 hover:text-slate-900'; ?>"
+                style="<?php echo $isActive ? 'background: var(--primary);' : ''; ?>">
+                <?php echo htmlspecialchars($label); ?>
+              </a>
+            <?php endforeach; ?>
+
+          </div>
         </div>
-        <div>
-          <input type="text" class="w-full px-4 py-2 rounded-full text-gray-900" placeholder="Medical Specialty">
-        </div>
-        <div>
-          <button type="button"
-                  class="w-full px-4 py-2 rounded-full bg-white text-gray-900 font-semibold">
+
+        <!-- RIGHT: Search -->
+        <form class="flex items-center gap-3 w-full lg:w-[420px]" method="get" action="">
+          <input type="hidden" name="tab" value="<?php echo htmlspecialchars($activeTab); ?>">
+
+          <label class="relative flex-1">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+              🔍
+            </span>
+
+            <input
+              id="clinicSearch"
+              type="text"
+              name="q"
+              value="<?php echo htmlspecialchars($q); ?>"
+              placeholder="Search clinic…"
+              class="w-full pl-10 pr-4 h-11 rounded-full bg-white border border-slate-200
+                    text-sm focus:outline-none focus:ring-2 focus:ring-[var(--secondary)]/60"
+            >
+          </label>
+
+          <button type="submit"
+                  class="h-11 px-6 rounded-full font-semibold text-white"
+                  style="background: var(--primary);">
             Search
           </button>
-        </div>
-      </form>
-    </div>
+        </form>
 
-    <!-- 10 clinics in a single column -->
-    <div class="space-y-4">
-      <?php for ($i = 1; $i <= 10; $i++): ?>
-        <?php
-          // Fallback return (if user opens profile in new tab or no history)
-          $returnUrl = $baseUrl . "/pages/clinics-all.php";
-        ?>
-        <a class="clinicLink block rounded-2xl"
-           href="<?php echo $baseUrl; ?>/pages/clinic-profile.php?id=<?php echo urlencode($i); ?>&return=<?php echo urlencode($returnUrl); ?>">
-          <div class="rounded-2xl shadow-sm bg-white overflow-hidden hover:shadow-md transition">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-0">
-              <div class="flex items-center justify-center h-40 md:h-auto"
-                   style="background: rgba(64, 183, 255, .10);">
-                <img
-                  src="https://cdn-icons-png.flaticon.com/512/2967/2967350.png"
-                  width="90"
-                  alt="Clinic"
-                >
+      </div>
+
+
+    <!-- RESULTS -->
+    <section class="mt-8">
+      <div id="clinicGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <?php foreach ($clinics as $c): ?>
+          <?php
+            // Return URL keeps tab + query when you go back from profile
+            $returnUrl = $baseUrl . "/pages/clinics-all.php?tab=" . urlencode($activeTab) . "&q=" . urlencode($q);
+          ?>
+          <a
+            class="clinic-card group block rounded-3xl"
+            data-category="<?php echo htmlspecialchars($c["category"]); ?>"
+            data-name="<?php echo htmlspecialchars(strtolower($c["name"])); ?>"
+            data-specialty="<?php echo htmlspecialchars(strtolower($c["specialty"])); ?>"
+            data-barangay="<?php echo htmlspecialchars(strtolower($c["barangay"])); ?>"
+            href="<?php echo $baseUrl; ?>/pages/clinic-profile.php?id=<?php echo urlencode($c["id"]); ?>&return=<?php echo urlencode($returnUrl); ?>"
+          >
+            <article class="h-full min-h-[320px] rounded-3xl bg-white shadow-sm border border-slate-100 overflow-hidden transition
+                group-hover:shadow-lg group-hover:-translate-y-1">
+              <div class="h-40 flex items-center justify-between px-6"
+                   style="background: linear-gradient(90deg, rgba(64,183,255,.18), rgba(144,213,255,.30));">
+                <div class="flex items-center gap-3">
+                  <div class="h-28 w-28 rounded-2xl bg-white/85 flex items-center justify-center border border-white/60 shadow-sm">
+                    <img
+                      src="https://cdn-icons-png.flaticon.com/512/2967/2967350.png"
+                      class="w-20 h-20"
+                      alt="Clinic"
+                      loading="lazy"
+                    >
+                  </div>
+                  <div class="leading-tight">
+                    <h2 class="font-extrabold text-slate-900">
+                      <?php echo htmlspecialchars($c["name"]); ?>
+                    </h2>
+                    <p class="text-xs font-semibold" style="color: rgba(11,56,105,.75);">
+                      <?php echo htmlspecialchars($c["specialty"]); ?>
+                    </p>
+                  </div>
+                </div>
+
+                <span class="text-xs font-bold px-3 py-1 rounded-full"
+                      style="background: rgba(255,190,138,.30); color: rgba(11,56,105,.85);">
+                  View
+                </span>
               </div>
-              <div class="md:col-span-2 p-5">
-                <h5 class="text-lg font-semibold">Clinic Name <?php echo $i; ?></h5>
-                <p class="text-gray-600 text-sm">Medical Specialty</p>
-                <p class="text-gray-700 mt-4">
-                  Short clinic description goes here. This can be fetched from the database.
+
+              <div class="p-6">
+                <p class="text-sm text-slate-600 leading-relaxed">
+                  Barangay: <span class="font-semibold"><?php echo htmlspecialchars($c["barangay"]); ?></span>
                 </p>
+
+                <div class="mt-5 flex items-center justify-between">
+                  <span class="inline-flex items-center gap-2 text-xs font-semibold text-slate-500">
+                    <span class="h-2 w-2 rounded-full" style="background: var(--primary);"></span>
+                    Open for booking
+                  </span>
+
+                  <span class="inline-flex items-center gap-2 text-sm font-bold" style="color: var(--primary);">
+                    Details
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
-        </a>
-      <?php endfor; ?>
-    </div>
+            </article>
+          </a>
+        <?php endforeach; ?>
+
+      </div>
+
+      <!-- Empty state -->
+      <div id="emptyState" class="hidden mt-10 text-center">
+        <div class="mx-auto max-w-md rounded-3xl bg-white/70 border border-white/60 p-8 shadow-sm">
+          <h3 class="text-lg font-extrabold text-slate-900">No clinics found</h3>
+          <p class="text-sm text-slate-600 mt-2">
+            Try a different keyword or switch tabs.
+          </p>
+        </div>
+      </div>
+    </section>
+
   </div>
 </main>
 
 <?php include __DIR__ . "/../includes/partials/footer.php"; ?>
 
-<!-- JS -->
-<script src="<?php echo $baseUrl; ?>/assets/js/global.js" defer></script>
+<script>
+// ✅ Instant client-side filtering (so it’s not “just styled”)
+(function () {
+  const input = document.getElementById("clinicSearch");
+  const cards = Array.from(document.querySelectorAll(".clinic-card"));
+  const empty = document.getElementById("emptyState");
 
+  // Read tab from URL (already handled server-side for activeTab)
+  const url = new URL(window.location.href);
+  const activeTab = url.searchParams.get("tab") || "all";
+
+  function applyFilter() {
+    const q = (input.value || "").trim().toLowerCase();
+    let visible = 0;
+
+    cards.forEach(card => {
+      const category = card.dataset.category || "";
+      const name = card.dataset.name || "";
+      const specialty = card.dataset.specialty || "";
+      const barangay = card.dataset.barangay || "";
+
+      const tabOk = (activeTab === "all") || (category === activeTab);
+      const qOk = (q === "") || name.includes(q) || specialty.includes(q) || barangay.includes(q);
+
+      const show = tabOk && qOk;
+      card.classList.toggle("hidden", !show);
+      if (show) visible++;
+    });
+
+    empty.classList.toggle("hidden", visible !== 0);
+  }
+
+  // Filter as you type
+  input.addEventListener("input", applyFilter);
+
+  // Run once on load
+  applyFilter();
+})();
+</script>
+
+<script src="<?php echo $baseUrl; ?>/assets/js/global.js" defer></script>
 </body>
 </html>

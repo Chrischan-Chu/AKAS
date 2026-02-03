@@ -1,49 +1,111 @@
+<?php
+$appTitle = "AKAS | Login";
+$baseUrl  = "/AKAS";
+include "../includes/partials/head.php";
+?>
 
-<?php $appTitle = "AKAS | Login"; ?>
-<!DOCTYPE html>
-<html lang="en" class="scroll-smooth">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><?php echo $appTitle; ?></title>
-  <link rel="stylesheet" href="/AKAS/assets/css/output.css?v=<?php echo filemtime(__DIR__ . '/../assets/css/output.css'); ?>">
-  <style>
-    :root { --primary:#40B7FF; --secondary:#90D5FF; --accent:#ffbe8a; }
-    .auth { min-height: 100vh; display: flex; background: #fff; }
-    .left { flex: 1; display: flex; justify-content: flex-start; padding: 64px 48px; }
-    .left-inner { width: 100%; max-width: 620px; margin-left: 80px; }
-    .right { flex: 1; background: var(--secondary); display: none; border-left: 1px solid rgba(0,0,0,.2); }
-    @media (min-width: 1024px){ .right { display: flex; } }
-    .img-box { width: calc(100% - 80px); height: calc(100% - 80px); margin: 40px; border: 1px solid rgba(0,0,0,.3); position: relative; }
-    .img-box svg { position:absolute; inset:0; width:100%; height:100%; }
-  </style>
-</head>
-<body>
-  <main class="auth">
-    <section class="left">
-      <div class="left-inner">
-        <h1 class="text-5xl font-semibold underline underline-offset-8">Hello</h1>
-        <form action="#" method="POST" class="mt-8 space-y-5">
-          <input type="email" name="email" placeholder="example@email.com" required class="w-full rounded-2xl px-6 py-5 text-xl outline-none border border-transparent focus:border-black/10" style="background:var(--secondary)" />
-          <input type="password" name="password" placeholder="password" required class="w-full rounded-2xl px-6 py-5 text-xl outline-none border border-transparent focus:border-black/10" style="background:var(--secondary)" />
-          <div class="pt-4 flex items-center gap-8">
-            <button type="submit" class="px-12 py-3 rounded-full text-xl font-medium shadow-sm hover:opacity-95 transition" style="background:var(--accent)">Login</button>
-            <a href="signup.php" class="px-12 py-3 rounded-full text-xl font-medium shadow-sm hover:opacity-95 transition inline-flex items-center justify-center" style="background:var(--accent)">Sign in</a>
-          </div>
-          <div class="pt-4 text-sm text-gray-500">
-            <a href="/AKAS/index.php#home" class="underline hover:text-gray-700">Back to home</a>
-          </div>
-        </form>
+<body class="min-h-screen bg-white">
+
+<style>
+  /* closer to the mock's LOGIN look */
+  .login-title {
+    font-family: ui-monospace, "Courier New", monospace;
+    letter-spacing: .14em;
+  }
+</style>
+
+<main class="min-h-screen flex items-center justify-center px-4 py-10">
+
+  <!-- Outer frame -->
+  <section class="w-full max-w-6xl rounded-[40px] overflow-visible shadow-xl border border-slate-100">
+    <div class="grid grid-cols-1 lg:grid-cols-2 min-h-[560px]">
+
+      <!-- LEFT (off-white) -->
+      <div class="bg-[#FFFDF6] relative flex items-start justify-center pt-16 p-10">
+
+        <!-- Logo -->
+        <img
+          src="<?php echo $baseUrl; ?>/assets/img/akas-logo.png"
+          alt="AKAS Logo"
+          class="w-80 max-w-full"
+        />
+
+        <!-- Doctor (overlapping) -->
+        <img
+          src="<?php echo $baseUrl; ?>/assets/img/doctor.png"
+          alt="Doctor"
+          class="hidden lg:block absolute -right-24 bottom-0 w-[360px] z-30 pointer-events-none"
+        />
       </div>
-    </section>
-    <section class="right">
-      <div class="img-box">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
-          <line x1="0" y1="0" x2="100" y2="100" stroke="rgba(0,0,0,0.25)" stroke-width="0.4"/>
-          <line x1="100" y1="0" x2="0" y2="100" stroke="rgba(0,0,0,0.25)" stroke-width="0.4"/>
-        </svg>
+
+      <!-- RIGHT (blue panel) -->
+      <div class="relative flex items-center justify-center p-10 rounded-tl-[40px] rounded-bl-[40px]"
+           style="background: #9ED9FB;"> <!-- matches your light blue -->
+
+        <div class="w-full max-w-sm">
+
+          <!-- Title -->
+          <h1 class="login-title text-5xl font-semibold text-white mb-14 text-center">
+            LOGIN
+          </h1>
+
+          <!-- Email -->
+          <div class="relative mb-5">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-black/80">
+              <!-- mail icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M3 8l9 6 9-6m-18 0v10a2 2 0 002 2h14a2 2 0 002-2V8m-18 0l9 6 9-6" />
+              </svg>
+            </span>
+
+            <input
+              type="email"
+              placeholder="Email"
+              class="w-full rounded-xl bg-white px-12 py-3 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-white/60"
+              required
+            />
+          </div>
+
+          <!-- Password -->
+          <div class="relative">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 text-black/80">
+              <!-- lock icon -->
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 11V7a4 4 0 00-8 0v4m8 0h6a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7a2 2 0 012-2h6z" />
+              </svg>
+            </span>
+
+            <input
+              type="password"
+              placeholder="Password"
+              class="w-full rounded-xl bg-white px-12 py-3 text-slate-700 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-white/60"
+              required
+            />
+          </div>
+
+          <!-- Forgot -->
+          <div class="mt-2">
+            <a href="#" class="text-xs text-black/80 hover:underline">
+              Forgot your password?
+            </a>
+          </div>
+
+        </div>
+
+        <!-- Doctor on mobile (center bottom) -->
+        <img
+          src="<?php echo $baseUrl; ?>/assets/img/doctor.png"
+          alt="Doctor"
+          class="lg:hidden absolute -left-6 bottom-0 w-[260px] opacity-95"
+        />
       </div>
-    </section>
-  </main>
+
+    </div>
+  </section>
+
+</main>
+
 </body>
 </html>
