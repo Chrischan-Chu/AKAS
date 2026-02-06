@@ -41,7 +41,7 @@ $clinics = [
   <div class="max-w-6xl mx-auto">
 
     <!-- Header Card -->
-    <section class="rounded-3xl p-6 sm:p-8 bg-white/70 backdrop-blur border border-white/60 shadow-sm">
+    <section class="rounded-3xl p-6 sm:p-8 bg-white/70 border-white/60 shadow-sm">
       <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <div>
           <p class="text-[var(--secondary)] font-semibold tracking-wide uppercase text-xs">
@@ -136,7 +136,7 @@ $clinics = [
             href="<?php echo $baseUrl; ?>/pages/clinic-profile.php?id=<?php echo urlencode($c["id"]); ?>&return=<?php echo urlencode($returnUrl); ?>"
           >
             <article class="h-full min-h-[320px] rounded-3xl bg-white shadow-sm border border-slate-100 overflow-hidden transition
-                group-hover:shadow-lg group-hover:-translate-y-1">
+                group-hover:shadow-sm group-hover:-translate-y-1">
               <div class="h-40 flex items-center justify-between px-6"
                    style="background: linear-gradient(90deg, rgba(64,183,255,.18), rgba(144,213,255,.30));">
                 <div class="flex items-center gap-3">

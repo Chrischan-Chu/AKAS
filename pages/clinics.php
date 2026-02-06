@@ -1,12 +1,12 @@
 
 <section id="clinics" class="scroll-mt-24">
-  <section class="px-4 py-14">
+  <section class="px-4 py-14" style="background-color: var(--secondary);">
 
     <div class="max-w-6xl mx-auto">
 
       <!-- Header -->
       <div class="flex items-center justify-between gap-4 mb-8">
-        <h2 class="text-3xl md:text-4xl font-extrabold text-[var(--primary)]">
+        <h2 class="text-3xl md:text-4xl font-extrabold text-white">
           Clinics
         </h2>
 
@@ -33,7 +33,7 @@
 
                 <!-- Bigger icon -->
                 <div class="h-20 w-20 rounded-3xl flex items-center justify-center shadow-sm"
-                     style="background: rgba(64, 183, 255, .15);">
+                     style="background: #40b7ff26;">
                   <img
                     src="https://cdn-icons-png.flaticon.com/512/2967/2967350.png"
                     alt="Clinic"

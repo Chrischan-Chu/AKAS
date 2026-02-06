@@ -10,6 +10,7 @@ include "includes/partials/head.php";
 <main>
   <?php include "pages/home.php"; ?>
   <?php include "pages/about.php"; ?>
+  <?php include "pages/mission-vision.php"; ?>
   <?php include "pages/clinics.php"; ?>
   <?php include "pages/contact.php"; ?>
 </main>

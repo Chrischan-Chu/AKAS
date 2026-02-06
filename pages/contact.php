@@ -7,7 +7,7 @@ $clinics = [
 $success = isset($_GET['sent']);
 ?>
 
-<section id="contact" class="scroll-mt-24">
+<section id="contact" class="scroll-mt-24" style="background-color: white;">
 
   <!-- HEADER -->
   <section class="py-6 text-center" style="background:var(--primary)">
@@ -21,7 +21,7 @@ $success = isset($_GET['sent']);
 
 
   <!-- FORM -->
-  <section class="py-12 px-4">
+  <section class="py-12 px-4 ">
     <div class="max-w-6xl mx-auto">
 
       <?php if($success): ?>
@@ -33,8 +33,7 @@ $success = isset($_GET['sent']);
       <?php endif; ?>
 
 
-      <div class="bg-white rounded-3xl shadow-sm p-6 md:p-10">
-
+      <div class="rounded-3xl shadow-sm p-6 md:p-10 text-white" style="background-color: var(--secondary);">
         <form class="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
           <!-- LEFT SIDE -->
@@ -49,9 +48,9 @@ $success = isset($_GET['sent']);
               <div class="relative">
                 <select
                   name="clinic_id"
-                  class="appearance-none w-full rounded-xl px-4 pr-12 py-3 text-white font-medium
-                         focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                  style="background:var(--primary)"
+                  class="appearance-none w-full rounded-xl px-4 pr-12 py-3 text-white font-medium"
+                  style="background-color: white; color: black;"
+                  required
                 >
                   <?php foreach($clinics as $c): ?>
                     <option value="<?php echo $c['id']; ?>">
@@ -61,7 +60,7 @@ $success = isset($_GET['sent']);
                 </select>
 
                 <!-- Custom Arrow -->
-                <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-white/80">
+                <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-black">
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                     <path d="M6 9l6 6 6-6"/>
                   </svg>
@@ -77,31 +76,31 @@ $success = isset($_GET['sent']);
             <!-- Name -->
             <input type="text"
               placeholder="Your Name"
-              class="w-full rounded-xl px-4 py-3 text-white placeholder-white/70"
-              style="background:var(--primary)" required>
+              class="w-full rounded-xl px-4 py-3 text-black placeholder-black"
+              style="background-color: white;" required>
 
 
             <!-- Email -->
             <input type="email"
               placeholder="Email"
-              class="w-full rounded-xl px-4 py-3 text-white placeholder-white/70"
-              style="background:var(--primary)" required>
+              class="w-full rounded-xl px-4 py-3 text-black placeholder-black"
+              style="background-color: white;" required>
 
 
             <!-- Subject -->
             <input type="text"
               placeholder="Subject"
-              class="w-full rounded-xl px-4 py-3 text-white placeholder-white/70"
-              style="background:var(--primary)" required>
+              class="w-full rounded-xl px-4 py-3 text-black placeholder-black"
+              style="background-color: white; " required>
 
 
             <!-- Category -->
             <div class="relative">
               <select
                 name="category"
-                class="appearance-none w-full rounded-xl px-4 pr-12 py-3 text-white font-medium
+                class="appearance-none w-full rounded-xl px-4 pr-12 py-3 text-black font-medium
                        focus:outline-none focus:ring-2 focus:ring-[var(--accent)]"
-                style="background:var(--primary)"
+                style="background-color: white;" required
               >
                 <option>Feedback</option>
                 <option>Complaint</option>
@@ -109,7 +108,7 @@ $success = isset($_GET['sent']);
                 <option>Appointment Concern</option>
               </select>
 
-              <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-white/80">
+              <div class="pointer-events-none absolute inset-y-0 right-4 flex items-center text-black">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path d="M6 9l6 6 6-6"/>
                 </svg>
@@ -126,8 +125,8 @@ $success = isset($_GET['sent']);
             name="message"
             rows="9"
             placeholder="Write your message here..."
-            class="w-full flex-1 rounded-2xl px-4 py-3 text-white placeholder-white/70"
-            style="background:var(--primary)"
+            class="w-full flex-1 rounded-2xl px-4 py-3 text-black placeholder-black"
+            style="background-color: white; color: black;"
             required></textarea>
 
 
@@ -140,7 +139,8 @@ $success = isset($_GET['sent']);
 
               <button
                 type="reset"
-                class="flex-1 rounded-xl py-3 font-semibold text-white bg-gray-800 hover:bg-gray-900 transition">
+                class="flex-1 rounded-xl py-3 font-semibold text-white hover:bg-gray-900 transition"
+                style="background-color: var(--primary);">
                 Send
               </button>
               
