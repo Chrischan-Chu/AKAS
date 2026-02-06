@@ -1075,6 +1075,10 @@ section[id] {
   flex-shrink: 0;
 }
 
+.grow {
+  flex-grow: 1;
+}
+
 .-translate-y-1\/2 {
   --tw-translate-y: -50%;
   transform: translate(var(--tw-translate-x), var(--tw-translate-y)) rotate(var(--tw-rotate)) skewX(var(--tw-skew-x)) skewY(var(--tw-skew-y)) scaleX(var(--tw-scale-x)) scaleY(var(--tw-scale-y));
@@ -1879,6 +1883,14 @@ section[id] {
 
 .text-white\/90 {
   color: rgb(255 255 255 / 0.9);
+}
+
+.text-\[var\(--accent\)\] {
+  color: var(--accent);
+}
+
+.underline {
+  text-decoration-line: underline;
 }
 
 .placeholder-white\/70::-moz-placeholder {

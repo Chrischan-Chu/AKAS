@@ -38,10 +38,10 @@ include "../includes/partials/head.php";
         <div class="w-full max-w-sm px-3 sm:px-4 lg:px-0">
 
           <!-- Title -->
-          <h1 class="auth-title text-3xl sm:text-4xl font-semibold text-black text-center">
+          <h1 class="auth-title text-3xl sm:text-4xl font-semibold text-white text-center">
             USER SIGN UP
           </h1>
-          <p class="text-center text-black/80 text-sm mb-5">
+          <p class="text-center text-white text-sm mb-5">
             Create your user account to book appointments.
           </p>
 
@@ -115,60 +115,64 @@ include "../includes/partials/head.php";
               />
             </div>
 
-           <!-- PASSWORD -->
-            <div class="relative">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-black/80">
-                <!-- lock icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 11V7a4 4 0 00-8 0v4m8 0h6a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7a2 2 0 012-2h6z" />
-                </svg>
-              </span>
+           <!-- PASSWORD + CONFIRM (side by side on sm+) -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
 
-              <input
-                type="password"
-                id="password"
-                name="password"
-                placeholder="Password"
-                data-validate="password"
-                required
-                class="w-full rounded-xl border border-slate-200 pl-12 pr-12 py-3 outline-none focus:ring-2 focus:ring-slate-200"
-              />
+              <!-- PASSWORD -->
+              <div class="relative">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-black/80">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 11V7a4 4 0 00-8 0v4m8 0h6a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7a2 2 0 012-2h6z" />
+                  </svg>
+                </span>
 
-              <button
-                type="button"
-                class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
-                data-target="password">
-              </button>
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  placeholder="Password"
+                  data-validate="password"
+                  required
+                  class="w-full rounded-xl border border-slate-200 pl-12 pr-12 py-3 outline-none focus:ring-2 focus:ring-slate-200"
+                />
+
+                <button
+                  type="button"
+                  class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                  data-target="password">
+                </button>
+              </div>
+
+              <!-- CONFIRM PASSWORD -->
+              <div class="relative">
+                <span class="absolute left-4 top-1/2 -translate-y-1/2 text-black/80">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 11V7a4 4 0 00-8 0v4m8 0h6a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7a2 2 0 012-2h6z" />
+                  </svg>
+                </span>
+
+                <input
+                  type="password"
+                  id="confirm_password"
+                  name="confirm_password"
+                  placeholder="Confirm Password"
+                  data-validate="password-confirm"
+                  data-match="password"
+                  required
+                  class="w-full rounded-xl border border-slate-200 pl-12 pr-12 py-3 outline-none focus:ring-2 focus:ring-slate-200"
+                />
+
+                <button
+                  type="button"
+                  class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
+                  data-target="confirm_password">
+                </button>
+              </div>
+
             </div>
 
-            <!-- CONFIRM PASSWORD -->
-            <div class="relative">
-              <span class="absolute left-4 top-1/2 -translate-y-1/2 text-black/80">
-                <!-- lock icon -->
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                    d="M12 11V7a4 4 0 00-8 0v4m8 0h6a2 2 0 012 2v7a2 2 0 01-2 2H6a2 2 0 01-2-2v-7a2 2 0 012-2h6z" />
-                </svg>
-              </span>
-
-              <input
-                type="password"
-                id="confirm_password"
-                name="confirm_password"
-                placeholder="Confirm Password"
-                data-validate="password-confirm"
-                data-match="password"
-                required
-                class="w-full rounded-xl border border-slate-200 pl-12 pr-12 py-3 outline-none focus:ring-2 focus:ring-slate-200"
-              />
-
-              <button
-                type="button"
-                class="toggle-pass absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-700"
-                data-target="confirm_password">
-              </button>
-            </div>
 
 
             <!-- Contact Number -->
@@ -232,7 +236,7 @@ include "../includes/partials/head.php";
               <button
                 type="submit"
                 class="w-full py-2.5 text-sm sm:text-base rounded-lg font-semibold
-                      text-black shadow-md hover:shadow-lg transition-all"
+                      text-black  shadow-md hover:shadow-lg transition-all"
                 style="background-color: var(--secondary);">
                 Create Account
               </button>

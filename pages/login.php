@@ -56,13 +56,13 @@ include "../includes/partials/head.php";
       <!-- RIGHT (blue panel) -->
       <div
         class="relative flex items-center justify-center p-6 sm:p-8 lg:p-10 rounded-tl-[40px] rounded-bl-[40px]"
-        style="background: #9ED9FB;">
+        style="background: var(--primary);">
 
         <!-- INNER FORM WRAPPER -->
         <div class="w-full max-w-sm px-4 sm:px-6 lg:px-0">
 
           <!-- Title -->
-          <h1 class="login-title text-5xl font-semibold text-black mb-6 text-center">
+          <h1 class="login-title text-5xl font-semibold text-white mb-6 text-center">
             LOGIN
           </h1>
 
@@ -128,7 +128,7 @@ include "../includes/partials/head.php";
             <button
               type="submit"
               class="px-6 sm:px-8 py-2.5 text-sm sm:text-base rounded-lg font-semibold text-white shadow-md hover:shadow-lg transition-all"
-              style="background-color: var(--primary);">
+              style="background-color: var(--secondary);">
               Login
             </button>
 
@@ -136,7 +136,7 @@ include "../includes/partials/head.php";
             <a
               href="<?php echo $baseUrl; ?>/pages/signup.php"
               class="px-4 sm:px-6 lg:px-8 py-2.5 text-sm sm:text-base rounded-lg font-semibold shadow-md hover:shadow-lg transition-all border border-white whitespace-nowrap"
-              style="background-color: rgba(255,255,255,0.9); color: #0b3869;">
+              style="background-color: rgba(255, 255, 255, 0.9); color: var(--primary);">
               Sign Up
             </a>
 
