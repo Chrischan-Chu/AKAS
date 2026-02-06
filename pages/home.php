@@ -9,7 +9,9 @@
       >
     </div>
     <div>
-      <h1 class="text-5xl text-white font-bold mb-4">Web-based Appointment Scheduling System</h1>
+      <h1 class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-white font-bold mb-4">
+        Web-based Appointment Scheduling System
+      </h1>
       <p class="text-white text-lg mb-6">
         AKAS helps patients easily book appointments while clinics efficiently manage schedules and avoid overbooking.
       </p>

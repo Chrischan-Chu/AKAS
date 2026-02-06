@@ -135,14 +135,15 @@ $success = isset($_GET['sent']);
               <button
                 class="flex-1 rounded-xl py-3 font-semibold text-gray-900 hover:opacity-95 transition"
                 style="background:var(--accent)">
-                Send
+                Clear
               </button>
 
               <button
                 type="reset"
                 class="flex-1 rounded-xl py-3 font-semibold text-white bg-gray-800 hover:bg-gray-900 transition">
-                Clear
+                Send
               </button>
+              
             </div>
 
           </div>

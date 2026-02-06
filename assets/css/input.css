@@ -71,7 +71,7 @@
       font-weight: 600;
       box-shadow: 0 10px 25px rgba(0,0,0,.3);
       transition: all 0.3s ease;
-      z-index: 999;
+      z-index: 2147483647;
       background-color: var(--primary);
       color: white;
       border: none;
@@ -87,5 +87,10 @@
       opacity: 1;
       pointer-events: auto;
     }
+
+    html { scroll-behavior: smooth; }
+    section[id] { scroll-margin-top: 90px; }
+
+    
 }
 

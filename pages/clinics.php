@@ -19,7 +19,8 @@
 
 
       <!-- BIGGER GRID -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-3 gap-6 px-8 lg:px-0">
+
         <?php for ($i = 1; $i <= 3; $i++): ?>
 
           <a href="/AKAS/pages/clinic-profile.php?id=<?php echo urlencode($i); ?>"

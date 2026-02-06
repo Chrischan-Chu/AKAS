@@ -16,6 +16,10 @@ include "includes/partials/head.php";
 
 <?php include "includes/partials/footer.php"; ?>
 
+<!-- Back To Top (GLOBAL) -->
+<button id="backToTop" type="button" aria-label="Back to top">↑</button>
+
+
 <!-- Global JS -->
 <script src="/AKAS/assets/js/global.js" defer></script>
 <!-- Contact page JS (only runs if elements exist) -->

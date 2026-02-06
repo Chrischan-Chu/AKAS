@@ -1,4 +1,14 @@
-<?php $appTitle = "AKAS | Choose Account Type"; ?>
+<?php
+$appTitle = "AKAS | Choose Account Type";
+$baseUrl  = "/AKAS";
+require_once __DIR__ . '/../includes/auth.php';
+
+// If already logged in, send where they belong
+if (auth_is_logged_in()) {
+  header('Location: ' . ($baseUrl . (auth_role() === 'clinic_admin' ? '/admin/dashboard.php' : '/index.php#top')));
+  exit;
+}
+?>
 <!DOCTYPE html>
 <html lang="en" class="scroll-smooth">
 <head>

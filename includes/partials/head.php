@@ -3,6 +3,10 @@
 if (!isset($appTitle)) { $appTitle = "AKAS"; }
 if (!isset($baseUrl))  { $baseUrl  = "/AKAS"; }
 
+// ✅ Auth bootstrap (starts session + guards admin routes)
+require_once dirname(__DIR__) . "/auth.php";
+auth_enforce_admin_dashboard_only($baseUrl);
+
 // Cache-bust Tailwind build when file changes
 $cssFile = dirname(__DIR__, 2) . "/assets/css/output.css";
 $cssVer  = file_exists($cssFile) ? filemtime($cssFile) : time();

@@ -12,25 +12,37 @@ include "../includes/partials/head.php";
 <body class="bg-blue-100">
 <?php include "../includes/partials/navbar.php"; ?>
 
-<!-- HEADER -->
-<section class="py-6 text-center text-white" style="background:var(--secondary)">
-  <div class="max-w-6xl mx-auto px-4 relative">
+<section class="py-6 text-white" style="background:var(--secondary)">
+  <div class="max-w-6xl mx-auto px-4">
 
-    <!-- ✅ Back: history.back() via JS, fallback href if needed -->
-    <a id="backLink"
-       href="<?php echo htmlspecialchars($return); ?>"
-       class="absolute left-0 top-1/2 -translate-y-1/2"
-       aria-label="Back">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-      </svg>
-    </a>
+    <div class="grid grid-cols-3 items-center">
+      
+      <!-- Left: Back -->
+      <div class="justify-self-start">
+        <a id="backLink"
+           href="<?php echo htmlspecialchars($return); ?>"
+           class="inline-flex items-center justify-center
+                  p-2 rounded-full bg-white/20 hover:bg-white/30 transition"
+           aria-label="Back">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </a>
+      </div>
 
-    <h1 class="text-3xl tracking-widest font-light">
-      <?php echo strtoupper(htmlspecialchars($clinicName)); ?>
-    </h1>
+      <!-- Middle: Title -->
+      <h1 class="justify-self-center text-center text-2xl sm:text-3xl tracking-widest font-light truncate">
+        <?php echo strtoupper(htmlspecialchars($clinicName)); ?>
+      </h1>
+
+      <!-- Right: Spacer (same width as back button area) -->
+      <div class="justify-self-end w-10 sm:w-12"></div>
+
+    </div>
   </div>
 </section>
+
+
 
 <!-- MAIN INFO -->
 <section class="py-10 px-4">
@@ -119,7 +131,7 @@ include "../includes/partials/head.php";
       </div>
 
       <!-- CALENDAR AREA -->
-      <div class="md:col-span-2">
+      <div class="md:col-span-2 ">
         <div class="rounded-xl p-4 md:p-5" style="background:var(--primary)">
           <div class="flex items-center justify-between mb-3">
             <p class="text-white font-semibold">Calendar</p>
@@ -197,7 +209,7 @@ include "../includes/partials/head.php";
         >
           <div class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-lg transition">
             <div class="flex items-center justify-center py-6">
-              <img src="https://cdn-icons-png.flaticon.com/512/387/387561.png" class="w-20" alt="Doctor">
+              <img src="../assets/img/doctor1.png" class="w-20" alt="Doctor">
             </div>
             <div class="p-6 text-white" style="background:var(--primary)">
               <h5 class="font-semibold">Doctor <?php echo $i; ?></h5>
@@ -212,7 +224,7 @@ include "../includes/partials/head.php";
 
 <!-- Doctor Profile Modal (hidden by default) -->
 <div id="doctorModal" class="fixed inset-0 z-[9999] hidden" aria-hidden="true">
-  <div id="doctorBackdrop" class="absolute inset-0 bg-black/55 backdrop-blur-sm"></div>
+  <div id="doctorBackdrop" class="absolute inset-0 bg-black/55"></div>
 
   <div class="relative h-full w-full flex items-center justify-center p-4 sm:p-6">
     <div class="w-full max-w-6xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-white/40">
