@@ -78,7 +78,7 @@ function resolve_schedule(string $raw, string $date, array $allowedIntervals): ?
 
     $start = (string)($schedule['start'] ?? '');
     $end   = (string)($schedule['end'] ?? '');
-    $mins  = (int)($schedule['slot_mins'] ?? 20);
+    $mins  = (int)($schedule['slot_mins'] ?? $schedule['interval'] ?? 20);
 
     if (!preg_match('/^\d{2}:\d{2}$/', $start)) return null;
     if (!preg_match('/^\d{2}:\d{2}$/', $end)) return null;
@@ -102,7 +102,7 @@ function resolve_schedule(string $raw, string $date, array $allowedIntervals): ?
 
     $start = (string)($row['start'] ?? '');
     $end   = (string)($row['end'] ?? '');
-    $mins  = (int)($row['slot_mins'] ?? 20);
+    $mins  = (int)($row['slot_mins'] ?? $row['interval'] ?? 20);
 
     if (!preg_match('/^\d{2}:\d{2}$/', $start)) return null;
     if (!preg_match('/^\d{2}:\d{2}$/', $end)) return null;
@@ -174,17 +174,38 @@ if (!$resolved) {
   ]);
 }
 
-$effectiveOpen  = (string)$resolved['start'];
-$effectiveClose = (string)$resolved['end'];
-$slotMins       = (int)$resolved['slot_mins'];
+$doctorStart = (string)$resolved['start'];
+$doctorEnd   = (string)$resolved['end'];
+$slotMins    = (int)$resolved['slot_mins'];
 $doctorScheduleMeta = $resolved['meta'];
 
-/* Clamp inside clinic hours */
-if ($effectiveOpen < $clinicOpen) $effectiveOpen = $clinicOpen;
-if ($effectiveClose > $clinicClose) $effectiveClose = $clinicClose;
+/* Clamp close time only */
+$effectiveOpen  = ($doctorStart > $clinicOpen) ? $doctorStart : $clinicOpen;
+$effectiveClose = ($doctorEnd < $clinicClose) ? $doctorEnd : $clinicClose;
 
-$start = new DateTime("$date $effectiveOpen");
-$end   = new DateTime("$date $effectiveClose");
+$doctorStartMinutes = ((int)substr($doctorStart, 0, 2) * 60) + (int)substr($doctorStart, 3, 2);
+$effectiveOpenMinutes = ((int)substr($effectiveOpen, 0, 2) * 60) + (int)substr($effectiveOpen, 3, 2);
+$effectiveCloseMinutes = ((int)substr($effectiveClose, 0, 2) * 60) + (int)substr($effectiveClose, 3, 2);
+
+/* Move to the first slot aligned with doctor's real schedule */
+if ($effectiveOpenMinutes > $doctorStartMinutes) {
+  $offset = ($effectiveOpenMinutes - $doctorStartMinutes) % $slotMins;
+  if ($offset !== 0) {
+    $effectiveOpenMinutes += ($slotMins - $offset);
+  }
+}
+
+if ($effectiveCloseMinutes <= $effectiveOpenMinutes) {
+  json_out(['ok'=>true,'slots'=>[],'meta'=>['clinic_status'=>'INVALID_HOURS']]);
+}
+
+$startHour = floor($effectiveOpenMinutes / 60);
+$startMin  = $effectiveOpenMinutes % 60;
+$endHour   = floor($effectiveCloseMinutes / 60);
+$endMin    = $effectiveCloseMinutes % 60;
+
+$start = new DateTime(sprintf('%s %02d:%02d', $date, $startHour, $startMin));
+$end   = new DateTime(sprintf('%s %02d:%02d', $date, $endHour, $endMin));
 
 if ($end <= $start) {
   json_out(['ok'=>true,'slots'=>[],'meta'=>['clinic_status'=>'INVALID_HOURS']]);

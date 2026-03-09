@@ -29,44 +29,57 @@ function resolve_schedule_for_date(array $schedule, string $date): ?array {
   if ($ts === false) return null;
 
   $dow = (int)date('w', $ts); // 0=Sun
-  $dayKey = date('D', $ts);   // Mon,Tue,...
+  $dayKey = date('D', $ts);   // Mon,Tue,Wed,Thu,Fri,Sat,Sun
 
   // ----- FORMAT B: Weekly object with day keys (Mon..Sun) -----
-  // ----- FORMAT A: Object with days[] + start/end -----
-    if (isset($schedule['days'], $schedule['start'], $schedule['end'])) {
-    
-      $days = $schedule['days'];
-      if (!is_array($days)) return null;
-    
-      $enabledToday = false;
+  if (isset($schedule[$dayKey]) && is_array($schedule[$dayKey])) {
+    $row = $schedule[$dayKey];
 
-        foreach ($days as $d) {
-          $d = (int)$d;
-        
-          // PHP dow format: Sun=0..Sat=6
-          // allow ISO Sunday=7 if ever used
-          if ($d === $dow || ($d === 7 && $dow === 0)) {
-            $enabledToday = true;
-            break;
-          }
-        }
-        
-        if (!$enabledToday) return null;
-    
-      $start = (string)($schedule['start'] ?? '');
-      $end   = (string)($schedule['end'] ?? '');
-      $int   = (int)($schedule['slot_mins'] ?? $schedule['interval'] ?? 30);
-    
-      if (!preg_match('/^\d{2}:\d{2}$/', $start)) return null;
-      if (!preg_match('/^\d{2}:\d{2}$/', $end)) return null;
-      if (!in_array($int, [15,20], true)) $int = 20;
-    
-      return ['start'=>$start, 'end'=>$end, 'int'=>$int];
-    }
-    return null;
+    if (empty($row['enabled'])) return null;
+
+    $start = (string)($row['start'] ?? '');
+    $end   = (string)($row['end'] ?? '');
+    $int   = (int)($row['slot_mins'] ?? $row['interval'] ?? 20);
+
+    if (!preg_match('/^\d{2}:\d{2}$/', $start)) return null;
+    if (!preg_match('/^\d{2}:\d{2}$/', $end)) return null;
+    if (!in_array($int, [15,20], true)) $int = 20;
+
+    return ['start' => $start, 'end' => $end, 'int' => $int];
   }
 
-  
+  // ----- FORMAT A: Object with days[] + start/end -----
+  if (isset($schedule['days'], $schedule['start'], $schedule['end'])) {
+    $days = $schedule['days'];
+    if (!is_array($days)) return null;
+
+    $enabledToday = false;
+    foreach ($days as $d) {
+      $d = (int)$d;
+
+      // PHP dow format: Sun=0..Sat=6
+      // allow ISO Sunday=7 if ever used
+      if ($d === $dow || ($d === 7 && $dow === 0)) {
+        $enabledToday = true;
+        break;
+      }
+    }
+
+    if (!$enabledToday) return null;
+
+    $start = (string)($schedule['start'] ?? '');
+    $end   = (string)($schedule['end'] ?? '');
+    $int   = (int)($schedule['slot_mins'] ?? $schedule['interval'] ?? 20);
+
+    if (!preg_match('/^\d{2}:\d{2}$/', $start)) return null;
+    if (!preg_match('/^\d{2}:\d{2}$/', $end)) return null;
+    if (!in_array($int, [15,20], true)) $int = 20;
+
+    return ['start' => $start, 'end' => $end, 'int' => $int];
+  }
+
+  return null;
+}
 
 
 function is_valid_slot_in_schedule(array $schedule, string $date, string $time): bool {
@@ -107,6 +120,20 @@ $date     = trim((string)($_POST['date'] ?? ''));
 $time     = trim((string)($_POST['time'] ?? '')); // expect HH:MM
 $notes    = trim((string)($_POST['notes'] ?? ''));
 
+//NEW
+$u = $pdo->prepare("
+  SELECT is_blacklisted
+  FROM accounts
+  WHERE id = ?
+  LIMIT 1
+");
+$u->execute([$userId]);
+$userRow = $u->fetch(PDO::FETCH_ASSOC) ?: null;
+
+if ($userRow && (int)($userRow['is_blacklisted'] ?? 0) === 1) {
+  json_out(['error' => 'Your account is blacklisted from booking appointments.'], 403);
+}
+
 if ($userId <= 0) json_out(['error' => 'Invalid user session.'], 401);
 if ($clinicId <= 0 || $doctorId <= 0) json_out(['error' => 'Missing clinic_id or doctor_id'], 400);
 
@@ -133,7 +160,25 @@ if ($date === $today) {
 }
 
 try {
-  $pdo->beginTransaction();
+    $pdo->beginTransaction();
+    
+    /* 🔒 SLOT LOCK (prevents race conditions) */
+    $lock = $pdo->prepare("
+      SELECT APT_AppointmentID
+      FROM appointments
+      WHERE APT_ClinicID = ?
+        AND APT_DoctorID = ?
+        AND APT_Date = ?
+        AND APT_Time = ?
+        AND APT_Status IN ('pending','approved','done')
+      FOR UPDATE
+    ");
+    $lock->execute([$clinicId, $doctorId, $date, $timeSql]);
+    
+    if ($lock->fetch()) {
+      $pdo->rollBack();
+      json_out(['error' => 'Slot already taken'], 409);
+    }
 
   // ✅ Clinic must be APPROVED and OPEN (optional but recommended)
   $c = $pdo->prepare("
@@ -220,25 +265,6 @@ try {
   if (empty($schedule) || !is_valid_slot_in_schedule($schedule, $date, $timeSql)) {
     $pdo->rollBack();
     json_out(['error' => 'Selected time is not in the doctor’s schedule.'], 400);
-  }
-
-  // ✅ Prevent overlapping booking for same clinic+doctor+date+time
-  $stmt = $pdo->prepare("
-    SELECT APT_AppointmentID
-    FROM appointments
-    WHERE APT_ClinicID = ?
-      AND APT_DoctorID = ?
-      AND APT_Date = ?
-      AND APT_Time = ?
-      AND APT_Status IN ('pending','approved','done')
-    LIMIT 1
-    FOR UPDATE
-  ");
-  $stmt->execute([$clinicId, $doctorId, $date, $timeSql]);
-
-  if ($stmt->fetch()) {
-    $pdo->rollBack();
-    json_out(['error' => 'Slot already taken'], 409);
   }
 
   // ✅ Only 1 active booking per user PER CLINIC (unless they cancel)

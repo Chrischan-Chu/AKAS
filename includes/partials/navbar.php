@@ -384,22 +384,43 @@ $isSuperAdmin  = $isLoggedIn && $role === 'super_admin';
 
     listEl.querySelectorAll('.notifCancelBtn').forEach(b => {
       b.addEventListener('click', async () => {
+    
         const id = b.getAttribute('data-appt-id');
         if (!id) return;
+    
+        if (!confirm("Cancel this appointment?")) return;
+    
         b.disabled = true;
+    
         try {
           const res = await fetch(`${BASE_URL}/api/user_delete_appointment.php`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ appointment_id: id })
           });
+    
           const data = await safeJson(res);
+    
           if (!res.ok) throw new Error(data.error || 'Cancel failed');
+    
+          // ✅ STEP 4 WARNING
+          if (typeof data.cancel_count !== "undefined") {
+              if (data.blacklisted) {
+                alert(`Cancellations used: ${data.cancel_count} / 3\n\nYour account has been blacklisted due to repeated cancellations.`);
+              } else if (data.warning) {
+                alert(`Cancellations used: ${data.cancel_count} / 3\n\n${data.warning}`);
+              } else {
+                alert(`Appointment cancelled.\n\nCancellations used: ${data.cancel_count} / 3`);
+              }
+            }
+    
           await loadAndRender();
+    
         } catch (e) {
           alert(e?.message || 'Cancel failed');
           b.disabled = false;
         }
+    
       });
     });
   }

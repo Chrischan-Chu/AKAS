@@ -515,6 +515,7 @@
     doctorModal.classList.remove("hidden");
     doctorModal.setAttribute("aria-hidden", "false");
     setBodyScrollLock(true);
+    if (doctorBody) { doctorBody.scrollTop = 0; doctorBody.scrollLeft = 0; }
   }
 
   function closeDoctorModal() {
@@ -555,7 +556,10 @@
       const res = await fetch(url, { cache: "no-store" });
       if (!res.ok) throw new Error("Failed to load doctor profile");
 
-      if (doctorBody) doctorBody.innerHTML = await res.text();
+      if (doctorBody) {
+        doctorBody.innerHTML = await res.text();
+        requestAnimationFrame(() => { doctorBody.scrollTop = 0; doctorBody.scrollLeft = 0; });
+      }
     } catch (err) {
       console.error(err);
       if (doctorBody) {

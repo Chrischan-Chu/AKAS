@@ -177,7 +177,7 @@ function doctor_schedule_text(array $d): string {
 // -------------------------
 if ($isAdminViewer) {
   $stmt = $pdo->prepare('
-    SELECT id, name, about, schedule, availability, image_path
+    SELECT id, name, specialization, about, schedule, availability, image_path
     FROM clinic_doctors
     WHERE clinic_id=?
     ORDER BY id DESC
@@ -185,7 +185,7 @@ if ($isAdminViewer) {
   $stmt->execute([$clinicId]);
 } else {
   $stmt = $pdo->prepare('
-    SELECT id, name, about, schedule, availability, image_path
+    SELECT id, name, specialization, about, schedule, availability, image_path
     FROM clinic_doctors
     WHERE clinic_id=?
       AND approval_status="APPROVED"
@@ -658,10 +658,9 @@ include "../includes/partials/head.php";
             $shortAbout = mb_strlen($about) > 70 ? mb_substr($about, 0, 70) . '...' : $about;
 
             // one-line schedule preview for the card
-            $schedPreview = '';
-            if ($schedText !== '') {
-              $firstLine = explode("\n", $schedText)[0] ?? '';
-              $schedPreview = $firstLine;
+            $specPreview = trim((string)($d['specialization'] ?? ''));
+            if ($specPreview === '') {
+              $specPreview = 'General Practice';
             }
           ?>
           <a href="#"
@@ -678,24 +677,20 @@ include "../includes/partials/head.php";
                 <?php endif; ?>
               </div>
 
-              <div class="p-6 text-white h-32 flex flex-col justify-center" style="background:var(--primary)">
-                <h5 class="font-semibold"><?php echo h((string)$d['name']); ?></h5>
+              <div class="p-6 text-white flex flex-col items-start" style="background:var(--primary)">
+  <h5 class="font-semibold text-[1.15rem] leading-tight">
+    <?php echo h((string)$d['name']); ?>
+  </h5>
 
-                <p class="text-sm text-white/90 mt-1">
-                  <?php echo h($shortAbout); ?>
-                </p>
+  <p class="text-sm text-white/90 font-medium mt-1 truncate w-full">
+    🩺 <?php echo h($specPreview); ?>
+  </p>
 
-                <?php if ($schedPreview !== ''): ?>
-                  <p class="text-xs text-white/80 mt-2 truncate">
-                    🗓 <?php echo h($schedPreview); ?>
-                  </p>
-                <?php endif; ?>
-
-                <span class="mt-2 inline-block text-sm font-semibold cursor-pointer group-hover:underline transition"
-                      style="color: var(--secondary);">
-                  Read Full Profile →
-                </span>
-              </div>
+  <span class="mt-4 inline-block text-sm font-semibold cursor-pointer group-hover:underline transition"
+        style="color: var(--secondary);">
+    Read Full Profile →
+  </span>
+</div>
             </div>
           </a>
         <?php endforeach; ?>
@@ -704,28 +699,36 @@ include "../includes/partials/head.php";
   </div>
 </section>
 
-<div id="doctorModal"
-     class="fixed inset-0 z-[25000] hidden items-center justify-center bg-black/60 p-4 sm:p-6 lg:p-8"
-     aria-hidden="true">
-  <div id="doctorBackdrop" class="absolute inset-0 bg-transparent"></div>
 
-  <div class="relative z-10 flex w-full items-center justify-center">
-    <div class="w-full max-w-5xl rounded-[28px] border border-slate-200 bg-white shadow-2xl overflow-hidden flex flex-col max-h-[80svh] min-h-0">
-      <div class="flex items-center justify-between gap-4 px-5 sm:px-6 py-4 border-b border-slate-200 bg-white shrink-0">
+<div id="doctorModal"
+     class="fixed left-0 right-0 bottom-0 z-[25000] hidden"
+     style="top:72px;"
+     aria-hidden="true">
+
+  <div id="doctorBackdrop" class="absolute inset-0 bg-black/55"></div>
+
+  <div class="absolute inset-0 bg-slate-100">
+    <div class="relative h-full w-full overflow-hidden">
+
+      <div class="sticky top-0 z-20 flex items-center justify-between gap-4 px-6 py-4 border-b border-slate-200 bg-white shadow-sm">
         <div>
-          <h3 class="text-lg sm:text-xl font-extrabold text-slate-900">Doctor Profile</h3>
-          <p class="text-xs sm:text-sm text-slate-500">Quick overview, schedule, and contact details</p>
+          <h3 class="text-xl font-extrabold text-slate-900">Doctor Profile</h3>
+          <p class="text-sm text-slate-500">Quick overview, schedule, and contact details</p>
         </div>
 
         <button id="closeDoctorModal"
                 type="button"
-                class="h-11 w-11 rounded-full bg-slate-100 border border-slate-200 hover:bg-slate-200 text-slate-700 flex items-center justify-center shrink-0"
-                aria-label="Close doctor profile">✕</button>
+                class="h-11 w-11 rounded-full bg-slate-100 border border-slate-200 hover:bg-slate-200 flex items-center justify-center shrink-0 text-xl leading-none text-slate-700">
+          ✕
+        </button>
       </div>
 
-      <div id="doctorModalBody" class="flex-1 min-h-0 overflow-y-auto p-4 sm:p-5 lg:p-6 bg-slate-50">
+      <div id="doctorModalBody"
+           class="absolute left-0 right-0 bottom-0 overflow-y-auto bg-slate-100 px-4 sm:px-5 lg:px-6 py-4"
+           style="top:81px; padding-bottom:32px;">
         <div class="text-slate-600 text-sm">Loading…</div>
       </div>
+
     </div>
   </div>
 </div>

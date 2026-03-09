@@ -1,6 +1,6 @@
 <section id="home" class="scroll-mt-24 pb-4" style="background-color: #ffffff;"> 
   
-  <div class="relative py-32 px-4 overflow-hidden" style="border-bottom-left-radius: 100px; border-bottom-right-radius: 100px;">
+  <div class="relative py-16 px-4 overflow-hidden" style="border-bottom-left-radius: 100px; border-bottom-right-radius: 100px;">
     
     <div class="absolute inset-0 z-0">
       <img 
@@ -32,7 +32,7 @@
     </div>
   </div>
 
-  <div class="max-w-6xl mx-auto px-4 -mt-20 pb-24 relative z-30">
+  <div class="max-w-6xl mx-auto px-4 -mt-20 pt-8 pb-24 relative z-30">
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
 
       <!-- Service Card -->

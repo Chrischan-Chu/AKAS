@@ -233,10 +233,10 @@ try {
 //NEW
 echo json_encode([
   'ok' => true,
-  'cancel_count' => $newCancelCount ?? 0,
-  'warning' => (isset($newCancelCount) && $newCancelCount === 3)
-      ? 'Warning: If you cancel another appointment, your account will be blacklisted.'
+  'cancel_count' => $newCancelCount,
+  'warning' => $newCancelCount === 3
+      ? 'Warning: You have reached 3 cancellations. Cancelling one more appointment will result in your account being blacklisted from booking.'
       : null,
-  'blacklisted' => (isset($newCancelCount) && $newCancelCount >= 4)
+  'blacklisted' => $newCancelCount >= 4
 ]);
 exit;

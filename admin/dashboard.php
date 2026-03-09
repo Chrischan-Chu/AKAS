@@ -397,7 +397,7 @@ include __DIR__ . '/../includes/partials/head.php';
         <a href="<?php echo $baseUrl; ?>/admin/clinic-details.php"
            class="w-full h-12 rounded-2xl font-bold text-white text-center flex items-center justify-center
                   shadow-sm hover:opacity-95 transition"
-           style="background: var(--secondary);">
+           style="background: var(--primary);">
           Clinic Details
         </a>
 
@@ -413,6 +413,13 @@ include __DIR__ . '/../includes/partials/head.php';
                   shadow-sm hover:opacity-95 transition"
            style="background: var(--primary);">
           Add Admin Account
+        </a>
+        
+        <a href="<?php echo $baseUrl; ?>/admin/blacklisted-users.php"
+           class="w-full h-12 rounded-2xl font-bold text-white text-center flex items-center justify-center
+                  shadow-sm hover:opacity-95 transition"
+           style="background: var(--primary);">
+          Blacklisted Users
         </a>
       </div>
     </div>

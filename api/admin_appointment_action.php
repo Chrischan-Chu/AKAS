@@ -56,7 +56,7 @@ try {
     $chk = $pdo->prepare("
       SELECT
         a.APT_AppointmentID,
-        a.APT_UserID,
+        a.APT_UserID AS user_id,
         a.APT_DoctorID,
         a.APT_ClinicID,
         a.APT_Status,
