@@ -5,6 +5,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/sms_templates.php';
 require_once __DIR__ . '/../includes/sms_logger.php';
+require_once __DIR__ . '/../includes/appointment_mailer.php';
 
 function json_out(array $data, int $status = 200): void {
   http_response_code($status);
@@ -56,7 +57,7 @@ try {
     $chk = $pdo->prepare("
       SELECT
         a.APT_AppointmentID,
-        a.APT_UserID AS user_id,
+        a.APT_UserID,
         a.APT_DoctorID,
         a.APT_ClinicID,
         a.APT_Status,
@@ -64,8 +65,10 @@ try {
         a.APT_Time,
         u.name AS user_name,
         u.phone AS user_phone,
+        u.email AS user_email,
         d.name AS doctor_name,
         d.contact_number AS doctor_phone,
+        d.email AS doctor_email,
         c.clinic_name AS clinic_name
       FROM appointments a
       JOIN accounts u ON u.id = a.APT_UserID
@@ -168,6 +171,15 @@ try {
       }
     }
 
+    if ($action === 'DONE') {
+      try {
+        if (is_array($details)) {
+        }
+      } catch (Throwable $mailErr) {
+        // Never block admin action if email fails
+      }
+    }
+
   }
 
   /**
@@ -187,7 +199,7 @@ try {
     if ($time === '') json_out(['ok' => false, 'message' => 'Missing time'], 422);
 
     // find user by email
-    $u = $pdo->prepare("SELECT id, name, phone FROM accounts WHERE email = :e LIMIT 1");
+    $u = $pdo->prepare("SELECT id, name, phone, email FROM accounts WHERE email = :e LIMIT 1");
     $u->execute([':e' => $email]);
     $user = $u->fetch(PDO::FETCH_ASSOC) ?: null;
     if (!$user) {
@@ -265,6 +277,8 @@ try {
       'APT_Time'          => $time,
       'user_name'         => (string)($user['name'] ?? ''),
       'user_phone'        => (string)($user['phone'] ?? ''),
+      'user_email'        => (string)($user['email'] ?? $email ?? ''),
+      'doctor_email'      => '',
     ];
 
     $pdo->commit();
@@ -298,8 +312,10 @@ try {
         a.APT_Time,
         u.name AS user_name,
         u.phone AS user_phone,
+        u.email AS user_email,
         d.name AS doctor_name,
         d.contact_number AS doctor_phone,
+        d.email AS doctor_email,
         c.clinic_name AS clinic_name
       FROM appointments a
       JOIN accounts u ON u.id = a.APT_UserID
@@ -441,6 +457,56 @@ if ($action === 'CANCELLED') {
     }
   } catch (Throwable $smsErr) {
     // ignore SMS errors
+  }
+
+  try {
+    if (is_array($details)) {
+      akas_send_cancel_emails($details, 'clinic');
+    }
+  } catch (Throwable $mailErr) {
+    // ignore email errors
+  }
+}
+
+if ($action === 'RESCHEDULE') {
+  try {
+    if (is_array($details)) {
+      // doctor may have changed, refresh doctor name/email for final schedule
+      $docRef = $pdo->prepare("SELECT name, contact_number, email FROM clinic_doctors WHERE id = ? LIMIT 1");
+      $docRef->execute([(int)($details['APT_DoctorID'] ?? 0)]);
+      $docNow = $docRef->fetch(PDO::FETCH_ASSOC) ?: [];
+      if ($docNow) {
+        $details['doctor_name'] = (string)($docNow['name'] ?? ($details['doctor_name'] ?? ''));
+        $details['doctor_phone'] = (string)($docNow['contact_number'] ?? ($details['doctor_phone'] ?? ''));
+        $details['doctor_email'] = (string)($docNow['email'] ?? ($details['doctor_email'] ?? ''));
+      }
+      akas_send_reschedule_request_emails(
+          $details,
+          (string)($payload['old_date'] ?? ''),
+          (string)($payload['old_time'] ?? ''),
+          (string)($payload['reason'] ?? '')
+        );
+    }
+  } catch (Throwable $mailErr) {
+    // ignore email errors
+  }
+}
+
+if ($action === 'CREATE') {
+  try {
+    if (is_array($details)) {
+      $docRef = $pdo->prepare("SELECT name, contact_number, email FROM clinic_doctors WHERE id = ? LIMIT 1");
+      $docRef->execute([(int)($details['APT_DoctorID'] ?? 0)]);
+      $docNow = $docRef->fetch(PDO::FETCH_ASSOC) ?: [];
+      if ($docNow) {
+        $details['doctor_name'] = (string)($docNow['name'] ?? '');
+        $details['doctor_phone'] = (string)($docNow['contact_number'] ?? '');
+        $details['doctor_email'] = (string)($docNow['email'] ?? '');
+      }
+      akas_send_booking_emails($details);
+    }
+  } catch (Throwable $mailErr) {
+    // ignore email errors
   }
 }
 

@@ -5,6 +5,8 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../includes/auth.php';
 
 require_once __DIR__ . '/../includes/sms_templates.php';
+require_once __DIR__ . '/../includes/appointment_mailer.php';
+require_once __DIR__ . '/../includes/clinic_blacklist.php';
 if (!auth_is_logged_in() || auth_role() !== 'user') {
   http_response_code(401);
   echo json_encode(['error' => 'Login required']);
@@ -40,9 +42,11 @@ try {
       a.APT_Time,
       u.name AS user_name,
       u.phone AS user_phone,
+      u.email AS user_email,
       c.clinic_name,
       d.name AS doctor_name,
-      d.contact_number AS doctor_phone
+      d.contact_number AS doctor_phone,
+      d.email AS doctor_email
     FROM appointments a
     JOIN accounts u ON u.id = a.APT_UserID
     JOIN clinics c ON c.id = a.APT_ClinicID
@@ -64,50 +68,42 @@ try {
   }
   
     // ===============================
-    // Cancel count + blacklist logic
+    // Per-clinic cancel count + blacklist logic
     // ===============================
-    $u = $pdo->prepare("
-      SELECT cancel_count, is_blacklisted
-      FROM accounts
-      WHERE id = ?
-      LIMIT 1
-      FOR UPDATE
-    ");
-    $u->execute([$userId]);
-    $userRow = $u->fetch(PDO::FETCH_ASSOC) ?: ['cancel_count' => 0, 'is_blacklisted' => 0];
-    
-    $cancelCount = (int)($userRow['cancel_count'] ?? 0);
-    $isBlacklisted = (int)($userRow['is_blacklisted'] ?? 0);
-    
-    if ($isBlacklisted === 1) {
+    $clinicId = (int)($details['APT_ClinicID'] ?? 0);
+    $clinicBlacklist = get_clinic_blacklist_row($pdo, $userId, $clinicId, true);
+
+    $cancelCount = (int)($clinicBlacklist['cancel_count'] ?? 0);
+    $isBlacklisted = (int)($clinicBlacklist['is_blacklisted'] ?? 0);
+
+    if ($isBlacklisted === 1 || $cancelCount >= 3) {
       $pdo->rollBack();
       http_response_code(403);
-      echo json_encode(['error' => 'Your account is blacklisted from booking appointments.']);
+      echo json_encode([
+        'error' => 'You already reached 3 cancellations in this clinic. You can no longer cancel appointments here.'
+      ]);
       exit;
     }
-    
+
     $newCancelCount = $cancelCount + 1;
-    
-    $updUser = $pdo->prepare("
-      UPDATE accounts
-      SET cancel_count = ?,
-          is_blacklisted = CASE WHEN ? >= 4 THEN 1 ELSE is_blacklisted END,
-          blacklisted_at = CASE WHEN ? >= 4 THEN NOW() ELSE blacklisted_at END,
-          blacklist_reason = CASE
-            WHEN ? >= 4 THEN 'Exceeded cancellation limit'
-            ELSE blacklist_reason
-          END
-      WHERE id = ?
-      LIMIT 1
-    ");
-    $updUser->execute([$newCancelCount, $newCancelCount, $newCancelCount, $newCancelCount, $userId]);
+    $willBlacklist = $newCancelCount >= 3;
+
+    upsert_clinic_blacklist_row(
+      $pdo,
+      $userId,
+      $clinicId,
+      $newCancelCount,
+      $willBlacklist ? 1 : 0,
+      $willBlacklist ? 'Exceeded cancellation limit' : null,
+      $willBlacklist
+    );
 
 
   $stmt = $pdo->prepare('UPDATE appointments
     SET APT_Status = "CANCELLED"
     WHERE APT_AppointmentID = ?
       AND APT_UserID = ?
-      AND APT_Status IN ("PENDING","APPROVED")
+      AND APT_Status IN ("pending","approved")
     LIMIT 1');
   $stmt->execute([$appointmentId, $userId]);
 
@@ -230,13 +226,22 @@ try {
   // ignore SMS errors
 }
 
+try {
+  if (is_array($details)) {
+    akas_send_cancel_emails($details, 'user');
+  }
+} catch (Throwable $mailErr) {
+  // ignore email errors
+}
+
 //NEW
 echo json_encode([
   'ok' => true,
   'cancel_count' => $newCancelCount,
   'warning' => $newCancelCount === 3
-      ? 'Warning: You have reached 3 cancellations. Cancelling one more appointment will result in your account being blacklisted from booking.'
+      ? 'Warning: You have reached 3 cancellations in this clinic. Cancelling one more appointment here will blacklist you from booking in this clinic.'
       : null,
-  'blacklisted' => $newCancelCount >= 4
+  'blacklisted' => $newCancelCount >= 3,
+  'clinic_scoped' => true
 ]);
 exit;

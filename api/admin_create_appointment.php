@@ -5,6 +5,7 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/sms_logger.php';
 require_once __DIR__ . '/../includes/sms_templates.php';
+require_once __DIR__ . '/../includes/appointment_mailer.php';
 
 if (!auth_is_logged_in() || auth_role() !== 'clinic_admin') {
   http_response_code(401);
@@ -24,12 +25,18 @@ if ($clinicId <= 0) {
 
 $raw = file_get_contents('php://input') ?: '';
 $body = json_decode($raw, true);
+$reason = trim((string)($body['reason'] ?? ''));
 if (!is_array($body)) $body = $_POST;
 
 $action = strtoupper(trim((string)($body['action'] ?? 'CREATE')));
+if ($action === 'RESCHEDULE' && $reason === '') {
+  http_response_code(422);
+  echo json_encode(['error' => 'Reschedule reason is required.']);
+  exit;
+}
 $appointmentId = (int)($body['appointment_id'] ?? 0);
 
-if (!in_array($action, ['CREATE','RESCHEDULE'], true)) {
+if (!in_array($action, ['CREATE', 'RESCHEDULE'], true)) {
   http_response_code(400);
   echo json_encode(['error' => 'Invalid action']);
   exit;
@@ -90,10 +97,9 @@ if (!$st->fetch(PDO::FETCH_ASSOC)) {
 try {
   $pdo->beginTransaction();
 
-  // If RESCHEDULE, verify appt belongs to clinic + user, and not closed (lock)
   if ($action === 'RESCHEDULE') {
     $chk = $pdo->prepare("
-      SELECT APT_AppointmentID, APT_Status, APT_Date, APT_Time
+      SELECT APT_AppointmentID, APT_Status, APT_Date, APT_Time, APT_DoctorID, APT_ClinicID
       FROM appointments
       WHERE APT_AppointmentID = ?
         AND APT_ClinicID = ?
@@ -103,7 +109,10 @@ try {
     ");
     $chk->execute([$appointmentId, $clinicId, $userId]);
     $row = $chk->fetch(PDO::FETCH_ASSOC) ?: null;
-    if ($row) { $oldDate = (string)($row['APT_Date'] ?? ''); $oldTime = (string)($row['APT_Time'] ?? ''); }
+    if ($row) {
+      $oldDate = (string)($row['APT_Date'] ?? '');
+      $oldTime = (string)($row['APT_Time'] ?? '');
+    }
 
     if (!$row) {
       $pdo->rollBack();
@@ -121,7 +130,6 @@ try {
     }
   }
 
-  // ✅ Idempotency: if RESCHEDULE is submitted with the same doctor/date/time again, treat as no-op
   if ($action === 'RESCHEDULE') {
     $curDoctor = (int)($row['APT_DoctorID'] ?? 0);
     $curClinic = (int)($row['APT_ClinicID'] ?? 0);
@@ -134,7 +142,6 @@ try {
     }
   }
 
-  // 0) Slot taken? (lock) — exclude itself for RESCHEDULE
   $slotSql = "
     SELECT APT_AppointmentID
     FROM appointments
@@ -165,14 +172,17 @@ try {
   $finalNotes = trim('ADMIN: ' . ($notes !== '' ? $notes : 'Follow-up / reschedule'));
 
   if ($action === 'RESCHEDULE') {
-    // ✅ RESCHEDULE explicit appointment_id
     $upd = $pdo->prepare("
       UPDATE appointments
       SET APT_ClinicID = ?,
           APT_DoctorID = ?,
           APT_Date     = ?,
           APT_Time     = ?,
-          APT_Status   = 'APPROVED',
+          APT_Status   = 'RESCHEDULE_PENDING',
+          APT_OldDate  = ?,
+          APT_OldTime  = ?,
+          APT_RescheduleReason = ?,
+          APT_RescheduledBy = 'admin',
           APT_Notes    = ?
       WHERE APT_AppointmentID = ?
         AND APT_UserID = ?
@@ -180,7 +190,19 @@ try {
       LIMIT 1
     ");
     try {
-      $upd->execute([$clinicId, $doctorId, $date, $time, $finalNotes, $appointmentId, $userId, $clinicId]);
+      $upd->execute([
+        $clinicId,
+        $doctorId,
+        $date,
+        $time,
+        $oldDate,
+        $oldTime,
+        $reason,
+        $finalNotes,
+        $appointmentId,
+        $userId,
+        $clinicId
+      ]);
     } catch (PDOException $e) {
       if ((string)$e->getCode() === '23000') {
         $pdo->rollBack();
@@ -200,11 +222,9 @@ try {
 
     $apptId = $appointmentId;
     $mode = 'rescheduled';
-
   } else {
-    // ✅ Only 1 active booking per user PER CLINIC
     $today = (new DateTime('now'))->format('Y-m-d');
-    
+
     $stmt = $pdo->prepare("
       SELECT APT_AppointmentID
       FROM appointments
@@ -215,9 +235,9 @@ try {
       LIMIT 1
       FOR UPDATE
     ");
-    
+
     $stmt->execute([$userId, $clinicId, $today]);
-    
+
     if ($stmt->fetch()) {
       $pdo->rollBack();
       json_out([
@@ -249,88 +269,164 @@ try {
 
   $pdo->commit();
 
+  // Load full details once after commit for notifications
+  $detailStmt = $pdo->prepare("
+    SELECT
+      a.APT_AppointmentID,
+      a.APT_UserID,
+      a.APT_ClinicID,
+      a.APT_DoctorID,
+      a.APT_Date,
+      a.APT_Time,
+      u.name AS user_name,
+      u.phone AS user_phone,
+      u.email AS user_email,
+      c.clinic_name,
+      d.name AS doctor_name,
+      d.contact_number AS doctor_phone,
+      d.email AS doctor_email
+    FROM appointments a
+    LEFT JOIN accounts u ON u.id = a.APT_UserID
+    LEFT JOIN clinics c ON c.id = a.APT_ClinicID
+    LEFT JOIN clinic_doctors d ON d.id = a.APT_DoctorID
+    WHERE a.APT_AppointmentID = ?
+      AND a.APT_ClinicID = ?
+      AND a.APT_UserID = ?
+    LIMIT 1
+  ");
+  $detailStmt->execute([$apptId, $clinicId, $userId]);
+  $details = $detailStmt->fetch(PDO::FETCH_ASSOC) ?: [];
 
-  // ✅ SMS: notify patient + doctor on RESCHEDULE (dedupe by identical message)
-  if ($action === 'RESCHEDULE') {
-    try {
-      // fetch recipient details
-      $u2 = $pdo->prepare("SELECT id, name, phone FROM accounts WHERE id = ? LIMIT 1");
-      $u2->execute([$userId]);
-      $user = $u2->fetch(PDO::FETCH_ASSOC) ?: null;
-
-      $d2 = $pdo->prepare("SELECT id, name, contact_number FROM clinic_doctors WHERE id = ? LIMIT 1");
-      $d2->execute([$doctorId]);
-      $doc = $d2->fetch(PDO::FETCH_ASSOC) ?: null;
-
-      $c2 = $pdo->prepare("SELECT clinic_name FROM clinics WHERE id = ? LIMIT 1");
-      $c2->execute([$clinicId]);
-      $cl = $c2->fetch(PDO::FETCH_ASSOC) ?: null;
-      $clinicName = (string)($cl['clinic_name'] ?? '');
-
-
-      $patientName = (string)($user['name'] ?? '');
-      $patientPhone = (string)($user['phone'] ?? '');
-      $doctorName  = (string)($doc['name'] ?? '');
-      $doctorPhone = (string)($doc['contact_number'] ?? '');
+  // SMS
+  try {
+    if ($details) {
+      $patientName = (string)($details['user_name'] ?? '');
+      $patientPhone = trim((string)($details['user_phone'] ?? ''));
+      $doctorName = (string)($details['doctor_name'] ?? '');
+      $doctorPhone = trim((string)($details['doctor_phone'] ?? ''));
+      $clinicName = (string)($details['clinic_name'] ?? '');
 
       $newDateFmt = $date !== '' ? date('M d, Y', strtotime($date)) : '';
       $oldDateFmt = $oldDate !== '' ? date('M d, Y', strtotime($oldDate)) : '';
 
-      // patient
-      if (trim($patientPhone) !== '') {
-        $msgU = sms_template('reschedule_user', [
-          'clinic_name'  => $clinicName,
-          'patient_name' => $patientName,
-          'doctor_name'  => $doctorName,
-          'date'         => $newDateFmt,
-          'time'         => $time,
-          'old_date'     => $oldDateFmt,
-          'old_time'     => $oldTime,
-        ]);
+      if ($action === 'RESCHEDULE') {
+        // Pending reschedule request = USER ONLY
+        if ($patientPhone !== '') {
+          $msgU = sms_template('reschedule_request_user', [
+            'clinic_name'  => $clinicName,
+            'patient_name' => $patientName,
+            'doctor_name'  => $doctorName,
+            'date'         => $newDateFmt,
+            'time'         => $time,
+            'old_date'     => $oldDateFmt,
+            'old_time'     => $oldTime,
+            'reason'       => $reason,
+          ]);
 
-        $q = $pdo->prepare("SELECT 1 FROM sms_logs WHERE appointment_id = :id AND event_type = 'reschedule' AND recipient_type = 'user' AND message = :msg LIMIT 1");
-        $q->execute([':id' => $apptId, ':msg' => $msgU]);
-        if (!$q->fetchColumn()) {
-          sms_send_and_log($pdo, [
-            'appointment_id' => $apptId,
-            'clinic_id'      => $clinicId,
-            'user_id'        => $userId,
-            'doctor_id'      => $doctorId,
-            'event_type'     => 'reschedule',
-          ], 'user', $patientPhone, $msgU);
+          $q = $pdo->prepare("
+            SELECT 1
+            FROM sms_logs
+            WHERE appointment_id = :id
+              AND event_type = 'reschedule_request'
+              AND recipient_type = 'user'
+              AND message = :msg
+            LIMIT 1
+          ");
+          $q->execute([':id' => $apptId, ':msg' => $msgU]);
+
+          if (!$q->fetchColumn()) {
+            sms_send_and_log($pdo, [
+              'appointment_id' => $apptId,
+              'clinic_id'      => $clinicId,
+              'user_id'        => $userId,
+              'doctor_id'      => $doctorId,
+              'event_type'     => 'reschedule_request',
+            ], 'user', $patientPhone, $msgU);
+          }
+        }
+      } else {
+        // Booking = USER + DOCTOR
+        if ($patientPhone !== '') {
+          $msgU = sms_template('booking_user', [
+            'clinic_name'  => $clinicName,
+            'patient_name' => $patientName,
+            'doctor_name'  => $doctorName,
+            'date'         => $newDateFmt,
+            'time'         => $time,
+          ]);
+
+          $q = $pdo->prepare("
+            SELECT 1
+            FROM sms_logs
+            WHERE appointment_id = :id
+              AND event_type = 'booking'
+              AND recipient_type = 'user'
+              AND message = :msg
+            LIMIT 1
+          ");
+          $q->execute([':id' => $apptId, ':msg' => $msgU]);
+
+          if (!$q->fetchColumn()) {
+            sms_send_and_log($pdo, [
+              'appointment_id' => $apptId,
+              'clinic_id'      => $clinicId,
+              'user_id'        => $userId,
+              'doctor_id'      => $doctorId,
+              'event_type'     => 'booking',
+            ], 'user', $patientPhone, $msgU);
+          }
+        }
+
+        if ($doctorPhone !== '') {
+          $msgD = sms_template('booking_doctor', [
+            'clinic_name'  => $clinicName,
+            'patient_name' => $patientName,
+            'doctor_name'  => $doctorName,
+            'date'         => $newDateFmt,
+            'time'         => $time,
+          ]);
+
+          $q = $pdo->prepare("
+            SELECT 1
+            FROM sms_logs
+            WHERE appointment_id = :id
+              AND event_type = 'booking'
+              AND recipient_type = 'doctor'
+              AND message = :msg
+            LIMIT 1
+          ");
+          $q->execute([':id' => $apptId, ':msg' => $msgD]);
+
+          if (!$q->fetchColumn()) {
+            sms_send_and_log($pdo, [
+              'appointment_id' => $apptId,
+              'clinic_id'      => $clinicId,
+              'user_id'        => $userId,
+              'doctor_id'      => $doctorId,
+              'event_type'     => 'booking',
+            ], 'doctor', $doctorPhone, $msgD);
+          }
         }
       }
-
-      // doctor
-      if (trim($doctorPhone) !== '') {
-        $msgD = sms_template('reschedule_doctor', [
-          'clinic_name'  => $clinicName,
-          'patient_name' => $patientName,
-          'doctor_name'  => $doctorName,
-          'date'         => $newDateFmt,
-          'time'         => $time,
-          'old_date'     => $oldDateFmt,
-          'old_time'     => $oldTime,
-        ]);
-
-        $q = $pdo->prepare("SELECT 1 FROM sms_logs WHERE appointment_id = :id AND event_type = 'reschedule' AND recipient_type = 'doctor' AND message = :msg LIMIT 1");
-        $q->execute([':id' => $apptId, ':msg' => $msgD]);
-        if (!$q->fetchColumn()) {
-          sms_send_and_log($pdo, [
-            'appointment_id' => $apptId,
-            'clinic_id'      => $clinicId,
-            'user_id'        => $userId,
-            'doctor_id'      => $doctorId,
-            'event_type'     => 'reschedule',
-          ], 'doctor', $doctorPhone, $msgD);
-        }
-      }
-    } catch (Throwable $e) {
-      // never block response if SMS fails
     }
+  } catch (Throwable $e) {
+    // Never block response if SMS fails
   }
 
-  // realtime: user badge refresh (unchanged)
+  // Email
+  try {
+    if ($details) {
+      if ($action === 'RESCHEDULE') {
+        akas_send_reschedule_request_emails($details, $oldDate, $oldTime, $reason);
+      } else {
+        akas_send_booking_emails($details);
+      }
+    }
+  } catch (Throwable $mailErr) {
+    // Never block response if email fails
+  }
+
+  // realtime: user badge refresh
   try {
     $patientId = $userId;
     $ablyKey = getenv('ABLY_API_KEY') ?: 'YOUR_FALLBACK_KEY';
@@ -358,11 +454,13 @@ try {
 
   echo json_encode(['ok' => true, 'mode' => $mode, 'appointment_id' => $apptId]);
   exit;
-
 } catch (Throwable $e) {
   error_log("admin_create_appointment ERROR: " . $e->getMessage());
   if ($pdo->inTransaction()) $pdo->rollBack();
   http_response_code(500);
-  echo json_encode(['error' => 'Server error']);
+  echo json_encode([
+    'error' => 'Server error',
+    'details' => $e->getMessage()
+  ]);
   exit;
 }

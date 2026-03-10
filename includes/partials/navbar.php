@@ -369,17 +369,75 @@ $isSuperAdmin  = $isLoggedIn && $role === 'super_admin';
     }
 
     listEl.innerHTML = items.map(it => {
-      const title = `${it.clinic_name || 'Clinic'} • ${it.doctor_name || 'Doctor'}`;
-      const when = `${it.date || ''} ${it.time_12 || ''}`.trim();
-      return `
-        <div class="px-4 py-3 border-b border-slate-200/70">
-          <div class="text-sm font-extrabold text-slate-900">${escapeHtml(title)}</div>
-          <div class="text-xs text-slate-600 mt-1">Approved appointment: <span class="font-semibold">${escapeHtml(when)}</span></div>
-          <div class="mt-2">
-            <button data-appt-id="${it.appointment_id}" class="notifCancelBtn text-xs font-extrabold px-3 py-1 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50">Cancel</button>
+        if (it.status === 'RESCHEDULE_PENDING') {
+        return `
+          <div class="px-4 py-3 border-b border-slate-200/70">
+            <div class="text-sm font-extrabold text-slate-900">
+              ${escapeHtml(it.clinic_name || 'Clinic')} • ${escapeHtml(it.doctor_name || 'Doctor')}
+            </div>
+    
+            <div class="text-xs text-amber-700 mt-1 font-semibold">
+              Your appointment was moved and is waiting for your response.
+            </div>
+    
+            <div class="text-xs text-slate-600 mt-2">
+              Previous:
+              <span class="font-semibold">
+                ${escapeHtml(it.old_date || '')} ${escapeHtml(it.old_time_12 || it.old_time || '')}
+              </span>
+            </div>
+    
+            <div class="text-xs text-slate-600">
+              New:
+              <span class="font-semibold">
+                ${escapeHtml(it.date || '')} ${escapeHtml(it.time_12 || '')}
+              </span>
+            </div>
+    
+            <div class="text-xs text-slate-600 mt-2">
+              Reason: ${escapeHtml(it.reason || 'No reason provided')}
+            </div>
+    
+            <div class="mt-3 flex gap-2">
+              <button data-appt-id="${it.appointment_id}"
+                class="notifAcceptBtn text-xs font-extrabold px-3 py-1 rounded-xl border transition"
+                style="border-color:#16a34a; color:#16a34a;"
+                onmouseover="this.style.background='#16a34a'; this.style.color='white'"
+                onmouseout="this.style.background='transparent'; this.style.color='#16a34a'">
+                Accept
+              </button>
+              <button data-appt-id="${it.appointment_id}"
+                class="notifDeclineBtn text-xs font-extrabold px-3 py-1 rounded-xl border transition"
+                style="border-color:#dc2626; color:#dc2626;"
+                onmouseover="this.style.background='#dc2626'; this.style.color='white'"
+                onmouseout="this.style.background='transparent'; this.style.color='#dc2626'">
+                Decline
+              </button>
+            </div>
           </div>
-        </div>
-      `;
+        `;
+      }
+      const title = `${it.clinic_name || 'Clinic'} • ${it.doctor_name || 'Doctor'}`;
+        const when = `${it.date || ''} ${it.time_12 || ''}`.trim();
+        
+        if (it.status === 'APPROVED') {
+          return `
+            <div class="px-4 py-3 border-b border-slate-200/70">
+              <div class="text-sm font-extrabold text-slate-900">${escapeHtml(title)}</div>
+              <div class="text-xs text-slate-600 mt-1">
+                Approved appointment: <span class="font-semibold">${escapeHtml(when)}</span>
+              </div>
+              <div class="mt-2">
+                <button data-appt-id="${it.appointment_id}"
+                  class="notifCancelBtn text-xs font-extrabold px-3 py-1 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50">
+                  Cancel
+                </button>
+              </div>
+            </div>
+          `;
+        }
+        
+        return '';
     }).join('');
 
     listEl.querySelectorAll('.notifCancelBtn').forEach(b => {
@@ -406,11 +464,11 @@ $isSuperAdmin  = $isLoggedIn && $role === 'super_admin';
           // ✅ STEP 4 WARNING
           if (typeof data.cancel_count !== "undefined") {
               if (data.blacklisted) {
-                alert(`Cancellations used: ${data.cancel_count} / 3\n\nYour account has been blacklisted due to repeated cancellations.`);
+                alert(`Cancellations used in this clinic: ${data.cancel_count} / 3\n\nYour account has been blacklisted from booking in this clinic due to repeated cancellations.`);
               } else if (data.warning) {
-                alert(`Cancellations used: ${data.cancel_count} / 3\n\n${data.warning}`);
+                alert(`Cancellations used in this clinic: ${data.cancel_count} / 3\n\n${data.warning}`);
               } else {
-                alert(`Appointment cancelled.\n\nCancellations used: ${data.cancel_count} / 3`);
+                alert(`Appointment cancelled.\n\nCancellations used in this clinic: ${data.cancel_count} / 3`);
               }
             }
     
@@ -419,6 +477,71 @@ $isSuperAdmin  = $isLoggedIn && $role === 'super_admin';
         } catch (e) {
           alert(e?.message || 'Cancel failed');
           b.disabled = false;
+        }
+    
+      });
+    });
+    
+    listEl.querySelectorAll(".notifAcceptBtn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+    
+        const id = btn.dataset.apptId;
+        if (!id) return;
+    
+        btn.disabled = true;
+    
+        try {
+          const res = await fetch(`${BASE_URL}/api/user_reschedule_response.php`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              appointment_id: id,
+              decision: "accept"
+            })
+          });
+    
+          const data = await safeJson(res);
+    
+          if (!res.ok) throw new Error(data.error || "Accept failed");
+    
+          await loadAndRender();
+    
+        } catch (e) {
+          alert(e.message || "Accept failed");
+          btn.disabled = false;
+        }
+    
+      });
+    });
+    
+    
+    listEl.querySelectorAll(".notifDeclineBtn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+    
+        const id = btn.dataset.apptId;
+        if (!id) return;
+        if (!confirm("Decline the rescheduled appointment? This may cancel the appointment.")) return;
+        btn.disabled = true;
+    
+        try {
+          const res = await fetch(`${BASE_URL}/api/user_reschedule_response.php`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              appointment_id: id,
+              decision: "decline"
+            })
+          });
+    
+          const data = await safeJson(res);
+    
+          if (!res.ok) throw new Error(data.error || "Decline failed");
+    
+          await loadAndRender();
+    
+        } catch (e) {
+          alert(e.message || "Decline failed");
+          btn.disabled = false;
         }
     
       });

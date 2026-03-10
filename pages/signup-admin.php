@@ -54,7 +54,6 @@ document.addEventListener("DOMContentLoaded", function () {
   .step { display: none; }
   .step.active { display: block; }
 
-  /* ✅ SAME LOGO STYLE AS signup-user */
   .akas-logo {
     width: 260px;
     max-width: 100%;
@@ -67,11 +66,24 @@ document.addEventListener("DOMContentLoaded", function () {
   @media (min-width: 768px) { .akas-logo { width: 360px; } }
   @media (min-width: 1024px) { .akas-logo { width: 500px; } }
 
-  /* ✅ SAME MANUAL DESKTOP POSITION CONTROL (ONLY DESKTOP) */
   @media (min-width: 1024px) {
     .logo-wrap {
       margin-top: 120px;
       padding-bottom: 80px;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    #topBackLink {
+      top: 10px !important;
+      left: 13px !important;
+    }
+  }
+
+  @media (max-width: 639px) {
+    #topBackLink {
+      top: 8px !important;
+      left: 13px !important;
     }
   }
 </style>
@@ -111,7 +123,7 @@ document.addEventListener("DOMContentLoaded", function () {
         id="topBackLink"
         href="<?= $baseUrl; ?>/pages/signup.php"
         class="absolute text-white font-semibold hover:underline z-50"
-        style="top:8px; left:13px;"
+        style="top:28px; left:13px;"
       >
         ← Back to selection
       </a>
@@ -270,7 +282,7 @@ document.addEventListener("DOMContentLoaded", function () {
                          text-slate-700 placeholder:text-slate-400
                          focus:outline-none focus:ring-2 focus:ring-white/60"
                 />
-                <p data-err-for="admin_name" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+                <p data-err-for="admin_name" class=" mt-1 text-sm text-red-600"></p>
               </div>
 
               <div>
@@ -304,7 +316,7 @@ document.addEventListener("DOMContentLoaded", function () {
                          text-slate-700 placeholder:text-slate-400
                          focus:outline-none focus:ring-2 focus:ring-white/60"
                 />
-                <p data-err-for="email" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+                <p data-err-for="email" class=" mt-1 text-sm text-red-600"></p>
               </div>
 
               <div>
@@ -337,7 +349,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                   </svg>
                                     </button>
                             </div>
-                <p data-err-for="password" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+                <p data-err-for="password" class=" mt-1 text-sm text-red-600"></p>
               </div>
 
               <div>
@@ -371,7 +383,7 @@ document.addEventListener("DOMContentLoaded", function () {
                                   </svg>
                                     </button>
                             </div>
-                <p data-err-for="confirm_password" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+                <p data-err-for="confirm_password" class=" mt-1 text-sm text-red-600"></p>
               </div>
 
               <button
@@ -429,7 +441,7 @@ document.addEventListener("DOMContentLoaded", function () {
                          text-slate-700 placeholder:text-slate-400
                          focus:outline-none focus:ring-2 focus:ring-white/60"
                 />
-                <p data-err-for="clinic_name" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+                <p data-err-for="clinic_name" class=" mt-1 text-sm text-red-600"></p>
               </div>
 
               <!-- DOCTORS -->
@@ -468,7 +480,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 <input type="hidden" name="doctors_json" id="doctorsJson" value="[]" />
                 <div id="doctorsList" class="mt-3 space-y-2"></div>
-                <p data-err-for="doctors_json" class="min-h-[16px] mt-2 text-sm text-red-600 font-semibold"></p>
+                <p data-err-for="doctors_json" class=" mt-2 text-sm text-red-600 font-semibold"></p>
               </div>
 
               <!-- Clinic Type -->
@@ -514,7 +526,7 @@ document.addEventListener("DOMContentLoaded", function () {
                          text-slate-700 placeholder:text-slate-400
                          focus:outline-none focus:ring-2 focus:ring-white/60"
                 />
-                <p data-err-for="specialty_other" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+                <p data-err-for="specialty_other" class=" mt-1 text-sm text-red-600"></p>
               </div>
 
               <!-- Contact -->
@@ -541,7 +553,7 @@ document.addEventListener("DOMContentLoaded", function () {
                            focus:outline-none focus:ring-2 focus:ring-white/60"
                   />
                 </div>
-                <p data-err-for="contact_number" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+                <p data-err-for="contact_number" class=" mt-1 text-sm text-red-600"></p>
               </div>
 
               <!-- Clinic Email -->
@@ -559,7 +571,7 @@ document.addEventListener("DOMContentLoaded", function () {
                          text-slate-700 placeholder:text-slate-400
                          focus:outline-none focus:ring-2 focus:ring-white/60"
                 />
-                <p data-err-for="clinic_email" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+                <p data-err-for="clinic_email" class=" mt-1 text-sm text-red-600"></p>
               </div>
 
               <!-- Clinic Logo -->
@@ -595,7 +607,7 @@ document.addEventListener("DOMContentLoaded", function () {
                          text-slate-700 placeholder:text-slate-400
                          focus:outline-none focus:ring-2 focus:ring-white/60"
                 />
-                <p data-err-for="business_id" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+                <p data-err-for="business_id" class=" mt-1 text-sm text-red-600"></p>
               </div>
 
               <!-- ✅ Create Clinic FULL WIDTH -->
@@ -792,9 +804,10 @@ document.addEventListener("DOMContentLoaded", function () {
             max-h-[90vh]
             rounded-2xl
             bg-white
-            outline outline-8 
             shadow-2xl
-            flex flex-col" style="outline-color:#ffa154;">
+            flex flex-col
+            overflow-hidden"
+     style="box-shadow: 0 0 0 4px #ffa154;">
     <div class="px-5 py-4 flex items-center justify-between bg-white border-b border-slate-200">
       <div>
         <p class="text-slate-900 font-bold">Add Doctor</p>

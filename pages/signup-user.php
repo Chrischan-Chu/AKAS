@@ -32,6 +32,9 @@ include "../includes/partials/head.php";
 
   <div class="min-h-screen grid grid-cols-1 lg:grid-cols-2">
 <style>
+  .step { display: none; }
+  .step.active { display: block; }
+
   .akas-logo {
     width: 260px;
     max-width: 100%;
@@ -40,21 +43,28 @@ include "../includes/partials/head.php";
     margin-left: auto;
     margin-right: auto;
   }
-  @media (min-width: 640px) {
-    .akas-logo { width: 320px; }
-  }
-  @media (min-width: 768px) {
-    .akas-logo { width: 360px; }
-  }
-  @media (min-width: 1024px) {
-    .akas-logo { width: 500px; }
-  }
+  @media (min-width: 640px) { .akas-logo { width: 320px; } }
+  @media (min-width: 768px) { .akas-logo { width: 360px; } }
+  @media (min-width: 1024px) { .akas-logo { width: 500px; } }
 
-  /* ✅ MANUAL DESKTOP POSITION CONTROL (ONLY DESKTOP) */
   @media (min-width: 1024px) {
     .logo-wrap {
-      margin-top: 120px;    
-      padding-bottom: 80px;  
+      margin-top: 120px;
+      padding-bottom: 80px;
+    }
+  }
+
+  @media (max-width: 1023px) {
+    #topBackLink {
+      top: 10px !important;
+      left: 13px !important;
+    }
+  }
+
+  @media (max-width: 639px) {
+    #topBackLink {
+      top: 8px !important;
+      left: 13px !important;
     }
   }
 </style>
@@ -90,9 +100,10 @@ include "../includes/partials/head.php";
 
       <!-- BACK BUTTON -->
       <a
+      id="topBackLink"
         href="<?= $baseUrl; ?>/pages/signup.php"
         class="absolute text-white font-semibold hover:underline z-50"
-        style="top:8px; left:13px;"
+        style="top:28px; left:13px;"
       >
         ← Back to selection
       </a>
@@ -176,7 +187,7 @@ include "../includes/partials/head.php";
                        text-slate-700 placeholder:text-slate-400
                        focus:outline-none focus:ring-2 focus:ring-white/60"
               />
-              <p data-err-for="name" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+              <p data-err-for="name" class=" mt-1 text-sm text-red-600"></p>
             </div>
 
            <div>
@@ -210,7 +221,7 @@ include "../includes/partials/head.php";
     </svg>
   </div>
 
-  <p data-err-for="gender" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+  <p data-err-for="gender" class=" mt-1 text-sm text-red-600"></p>
 </div>
 
             <!-- Email -->
@@ -229,7 +240,7 @@ include "../includes/partials/head.php";
                        text-slate-700 placeholder:text-slate-400
                        focus:outline-none focus:ring-2 focus:ring-white/60"
               />
-              <p data-err-for="email" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+              <p data-err-for="email" class=" mt-1 text-sm text-red-600"></p>
             </div>
 
             <!-- Password -->
@@ -266,7 +277,7 @@ include "../includes/partials/head.php";
                 </svg>
               </button>
               </div>
-              <p data-err-for="password" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+              <p data-err-for="password" class=" mt-1 text-sm text-red-600"></p>
             </div>
 
             <!-- Confirm Password -->
@@ -304,7 +315,7 @@ include "../includes/partials/head.php";
                 </svg>
               </button>
               </div>
-              <p data-err-for="confirm_password" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+              <p data-err-for="confirm_password" class=" mt-1 text-sm text-red-600"></p>
             </div>
 
             <!-- Contact -->
@@ -329,7 +340,7 @@ include "../includes/partials/head.php";
                          focus:outline-none focus:ring-2 focus:ring-white/60"
                 />
               </div>
-              <p data-err-for="contact_number" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+              <p data-err-for="contact_number" class=" mt-1 text-sm text-red-600"></p>
             </div>
 
             <!-- Birthdate -->
@@ -348,7 +359,7 @@ include "../includes/partials/head.php";
                          text-slate-700 focus:outline-none focus:ring-2 focus:ring-white/60"
                 />
               </div>
-              <p data-err-for="birthdate" class="min-h-[16px] mt-1 text-sm text-red-600"></p>
+              <p data-err-for="birthdate" class=" mt-1 text-sm text-red-600"></p>
             </div>
 
         <button

@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../includes/sms_logger.php';
 require_once __DIR__ . '/../includes/sms_templates.php';
+require_once __DIR__ . '/../includes/appointment_mailer.php';
 
 $baseUrl = '';
 auth_require_role('user', $baseUrl);
@@ -39,8 +40,10 @@ try {
       a.APT_Status,
       u.name AS user_name,
       u.phone AS user_phone,
+      u.email AS user_email,
       d.name AS doctor_name,
       d.contact_number AS doctor_phone,
+      d.email AS doctor_email,
       c.clinic_name AS clinic_name
     FROM appointments a
     JOIN accounts u ON u.id = a.APT_UserID
@@ -165,6 +168,16 @@ try {
     }
   } catch (Throwable $e) {
     // never block response if SMS fails
+  }
+
+  try {
+    if (is_array($row)) {
+      $row['APT_Date'] = $newDate;
+      $row['APT_Time'] = $newTime;
+      akas_send_reschedule_emails($row, $oldDate, $oldTime);
+    }
+  } catch (Throwable $mailErr) {
+    // never block response if email fails
   }
 
   echo "OK";

@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/clinic_blacklist.php';
 
 function json_out(array $data, int $status = 200): void {
   http_response_code($status);
@@ -56,22 +57,26 @@ try {
     ':cid' => $clinicId,
   ]);
 
+  ensure_clinic_blacklist_table($pdo);
+
   if (!$chk->fetchColumn()) {
     $pdo->rollBack();
     json_out(['ok' => false, 'message' => 'User is not linked to this clinic'], 404);
   }
 
-    if ($mode === 'UNBLACKLIST') {
-      $upd = $pdo->prepare("
-        UPDATE accounts
-        SET is_blacklisted = 0,
-            cancel_count = 0,
-            blacklisted_at = NULL,
-            blacklist_reason = NULL
-        WHERE id = :uid
-        LIMIT 1
-      ");
-    $upd->execute([':uid' => $userId]);
+  if ($mode === 'UNBLACKLIST') {
+    $upd = $pdo->prepare("
+      INSERT INTO account_clinic_blacklist
+        (user_id, clinic_id, cancel_count, is_blacklisted, blacklisted_at, blacklist_reason)
+      VALUES
+        (:uid, :cid, 0, 0, NULL, NULL)
+      ON DUPLICATE KEY UPDATE
+        cancel_count = 0,
+        is_blacklisted = 0,
+        blacklisted_at = NULL,
+        blacklist_reason = NULL
+    ");
+    $upd->execute([':uid' => $userId, ':cid' => $clinicId]);
 
     if ($upd->rowCount() < 1) {
       $pdo->rollBack();
@@ -87,14 +92,16 @@ try {
   }
 
   $upd = $pdo->prepare("
-    UPDATE accounts
-    SET is_blacklisted = 1,
-        blacklisted_at = NOW(),
-        blacklist_reason = 'Blacklisted by clinic admin'
-    WHERE id = :uid
-    LIMIT 1
+    INSERT INTO account_clinic_blacklist
+      (user_id, clinic_id, cancel_count, is_blacklisted, blacklisted_at, blacklist_reason)
+    VALUES
+      (:uid, :cid, 0, 1, NOW(), 'Blacklisted by clinic admin')
+    ON DUPLICATE KEY UPDATE
+      is_blacklisted = 1,
+      blacklisted_at = NOW(),
+      blacklist_reason = 'Blacklisted by clinic admin'
   ");
-  $upd->execute([':uid' => $userId]);
+  $upd->execute([':uid' => $userId, ':cid' => $clinicId]);
 
   if ($upd->rowCount() < 1) {
     $pdo->rollBack();

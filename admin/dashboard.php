@@ -633,6 +633,14 @@ include __DIR__ . '/../includes/partials/head.php';
               <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">Notes (optional)</label>
               <textarea id="admCreateNotes" rows="3" class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white" placeholder="Follow-up / reschedule notes..."></textarea>
             </div>
+            <div>
+              <label class="block text-xs font-bold text-slate-600 uppercase tracking-wide mb-1">
+                Reason for reschedule
+              </label>
+              <textarea id="admRescheduleReason" rows="3"
+                class="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
+                placeholder="Explain why the appointment is being moved..."></textarea>
+            </div>
           </div>
 
           <div class="mt-6 flex flex-col sm:flex-row gap-3 sm:justify-end">

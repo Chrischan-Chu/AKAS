@@ -404,23 +404,14 @@
     const patientContact = $("patientContact")?.value || "";
     const form = new FormData();
     //New
-    const slotDT = new Date(`${dateYMD}T${selectedSlot}:00`);
-    const now = new Date();
-    const diffMs = slotDT.getTime() - now.getTime();
-    const diffMinutes = Math.floor(diffMs / 60000);
-    
-    if (diffMinutes > 0 && diffMinutes <= 60) {
-      const proceed = confirm(
-        "Warning: This appointment is only within 1 hour from the current time. Do you want to continue?"
-      );
-      if (!proceed) return;
-    }
-        
+    let confirmedNearTime = false;
+
     form.append("clinic_id", String(CLINIC_ID));
     form.append("doctor_id", String(doctorId));
     form.append("date", dateYMD);
     form.append("time", selectedSlot);
     form.append("notes", notes);
+    if (confirmedNearTime) form.append("confirm_near_time", "1");
 
     // safe even if backend ignores these
     form.append("patient_name", patientName);
@@ -444,6 +435,24 @@
       const data = await safeJson(res);
 
       if (!res.ok) {
+        if (data?.warning_required) {
+          const proceed = confirm(data.error || "This booking is very near. Continue?");
+          if (proceed) {
+            form.set("confirm_near_time", "1");
+            const retryRes = await fetch(`${BASE_URL}/api/book_appointment.php`, {
+              method: "POST",
+              body: form,
+              credentials: "same-origin",
+            });
+            const retryData = await safeJson(retryRes);
+            if (!retryRes.ok) throw new Error(retryData.error || "Booking failed.");
+            alert(retryData.message || "Booked!");
+            await renderSlots();
+            closeBookingModal();
+            return;
+          }
+          return;
+        }
         alert(data.error || "Booking failed.");
         return;
       }

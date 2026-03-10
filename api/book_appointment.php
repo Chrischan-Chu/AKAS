@@ -5,6 +5,8 @@ header('Content-Type: application/json; charset=utf-8');
 require_once __DIR__ . '/../includes/auth.php';
 
 require_once __DIR__ . '/../includes/sms_templates.php';
+require_once __DIR__ . '/../includes/appointment_mailer.php';
+require_once __DIR__ . '/../includes/clinic_blacklist.php';
 date_default_timezone_set('Asia/Manila');
 
 function json_out(array $data, int $status = 200): void {
@@ -120,18 +122,9 @@ $date     = trim((string)($_POST['date'] ?? ''));
 $time     = trim((string)($_POST['time'] ?? '')); // expect HH:MM
 $notes    = trim((string)($_POST['notes'] ?? ''));
 
-//NEW
-$u = $pdo->prepare("
-  SELECT is_blacklisted
-  FROM accounts
-  WHERE id = ?
-  LIMIT 1
-");
-$u->execute([$userId]);
-$userRow = $u->fetch(PDO::FETCH_ASSOC) ?: null;
-
-if ($userRow && (int)($userRow['is_blacklisted'] ?? 0) === 1) {
-  json_out(['error' => 'Your account is blacklisted from booking appointments.'], 403);
+$clinicBlacklist = get_clinic_blacklist_row($pdo, $userId, $clinicId, false);
+if ((int)($clinicBlacklist['is_blacklisted'] ?? 0) === 1) {
+  json_out(['error' => 'Your account is blacklisted from booking appointments in this clinic.'], 403);
 }
 
 if ($userId <= 0) json_out(['error' => 'Invalid user session.'], 401);
@@ -154,8 +147,68 @@ if ($date < $today) {
 }
 if ($date === $today) {
   $nowHHMM = date('H:i');
-  if ($timeSql <= $nowHHMM) {
+  if ($timeSql < $nowHHMM) {
     json_out(['error' => 'You cannot book a past time.'], 400);
+  }
+}
+
+//new
+$confirmNearTime = (int)($_POST['confirm_near_time'] ?? 0) === 1;
+$minutesUntilBooking = null;
+$nearTimeWarning = null;
+
+$newBookingMinutes = time_to_minutes($timeSql);
+
+// Check other active bookings of this user on the SAME DATE.
+// Exclude cancelled/done. Exclude same clinic rule? No — check all clinics, because you asked
+// for warning based on the booking schedule itself.
+$nearStmt = $pdo->prepare("
+  SELECT
+    APT_AppointmentID,
+    APT_ClinicID,
+    APT_DoctorID,
+    APT_Time
+  FROM appointments
+  WHERE APT_UserID = ?
+    AND APT_Date = ?
+    AND APT_Status IN ('pending','approved')
+");
+$nearStmt->execute([$userId, $date]);
+
+$closestDiff = null;
+$closestTime = null;
+
+foreach ($nearStmt->fetchAll(PDO::FETCH_ASSOC) as $existing) {
+  $existingTime = substr((string)($existing['APT_Time'] ?? ''), 0, 5);
+  if (!preg_match('/^\d{2}:\d{2}$/', $existingTime)) {
+    continue;
+  }
+
+  $existingMinutes = time_to_minutes($existingTime);
+  $diffMinutes = abs($newBookingMinutes - $existingMinutes);
+
+  if ($diffMinutes <= 60 && ($closestDiff === null || $diffMinutes < $closestDiff)) {
+    $closestDiff = $diffMinutes;
+    $closestTime = $existingTime;
+  }
+}
+
+if ($closestDiff !== null) {
+  $minutesUntilBooking = $closestDiff;
+
+  if ($closestDiff === 0) {
+    $nearTimeWarning = 'Warning: You already have another active booking at ' . $closestTime . ' on this date. Do you still want to continue?';
+  } else {
+    $nearTimeWarning = 'Warning: You already have another active booking at ' . $closestTime . ' on this date. This new booking is only ' . $closestDiff . ' minute' . ($closestDiff === 1 ? '' : 's') . ' apart. Do you still want to continue?';
+  }
+
+  if (!$confirmNearTime) {
+    json_out([
+      'error' => $nearTimeWarning,
+      'warning_required' => true,
+      'minutes_until_booking' => $closestDiff,
+      'existing_booking_time' => $closestTime,
+    ], 409);
   }
 }
 
@@ -171,13 +224,18 @@ try {
         AND APT_Date = ?
         AND APT_Time = ?
         AND APT_Status IN ('pending','approved','done')
-      FOR UPDATE
     ");
     $lock->execute([$clinicId, $doctorId, $date, $timeSql]);
     
-    if ($lock->fetch()) {
+    $row = $lock->fetch(PDO::FETCH_ASSOC);
+
+    if ($row) {
       $pdo->rollBack();
-      json_out(['error' => 'Slot already taken'], 409);
+      json_out([
+        'error' => 'Slot already taken',
+        'source' => 'lock_check',
+        'debug' => $row,
+      ], 409);
     }
 
   // ✅ Clinic must be APPROVED and OPEN (optional but recommended)
@@ -261,6 +319,8 @@ try {
     }
   }
 
+    $resolved = resolve_schedule_for_date($schedule, $date);
+
 
   if (empty($schedule) || !is_valid_slot_in_schedule($schedule, $date, $timeSql)) {
     $pdo->rollBack();
@@ -306,7 +366,11 @@ try {
         }
     
         $pdo->rollBack();
-        json_out(['error' => 'Slot already taken'], 409);
+        json_out([
+          'error' => 'Slot already taken',
+          'source' => 'insert_constraint',
+          'debug_sql' => $errMsg
+        ], 409);
       }
       throw $e;
     }
@@ -362,6 +426,7 @@ try {
     if (defined('IPROGSMS_API_TOKEN') && (string)IPROGSMS_API_TOKEN !== '' && $apptId > 0) {
       $q = $pdo->prepare("
         SELECT
+          a.APT_AppointmentID,
           a.APT_UserID,
           a.APT_DoctorID,
           a.APT_ClinicID,
@@ -369,8 +434,10 @@ try {
           c.clinic_name AS clinic_name,
 
           u.phone AS user_phone,
+          u.email AS user_email,
           d.name AS doctor_name,
           d.contact_number AS doctor_phone,
+          d.email AS doctor_email,
           a.APT_Date,
           a.APT_Time
         FROM appointments a
@@ -384,6 +451,7 @@ try {
       $row = $q->fetch(PDO::FETCH_ASSOC) ?: null;
 
       if (is_array($row)) {
+        $row['APT_AppointmentID'] = (int)($row['APT_AppointmentID'] ?? $apptId);
         $patientName = (string)($row['user_name'] ?? '');
         $doctorName  = (string)($row['doctor_name'] ?? '');
 
@@ -436,7 +504,20 @@ try {
     // ignore SMS errors (do not block booking)
   }
 
-  json_out(['ok' => true, 'message' => 'Approved, please check notification for your checkup appointment.']);
+  try {
+    if (isset($row) && is_array($row)) {
+      akas_send_booking_emails($row);
+    }
+  } catch (Throwable $mailErr) {
+    // ignore email errors (do not block booking)
+  }
+
+  json_out([
+    'ok' => true,
+    'message' => 'Approved, please check notification for your checkup appointment.',
+    'minutes_until_booking' => $minutesUntilBooking,
+    'near_time_warning' => $nearTimeWarning,
+  ]);
 } catch (Throwable $e) {
   if ($pdo->inTransaction()) $pdo->rollBack();
   json_out(['error' => 'Server error: ' . $e->getMessage()], 500);

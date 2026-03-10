@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../includes/clinic_blacklist.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
   header('Location: /admin/blacklisted-users.php');
@@ -42,6 +43,8 @@ try {
     ':cid' => $clinicId,
   ]);
 
+  ensure_clinic_blacklist_table($pdo);
+
   if (!$chk->fetchColumn()) {
     $pdo->rollBack();
     flash_set('error', 'User is not linked to this clinic.');
@@ -49,16 +52,19 @@ try {
     exit;
   }
 
-  if ($mode === 'UNBLACKLIST') {
-    $upd = $pdo->prepare("
-      UPDATE accounts
-      SET is_blacklisted = 0,
+    if ($mode === 'UNBLACKLIST') {
+      $upd = $pdo->prepare("
+        INSERT INTO account_clinic_blacklist
+          (account_id, clinic_id, cancel_count, is_blacklisted, blacklisted_at, blacklist_reason)
+        VALUES
+          (:uid, :cid, 0, 0, NULL, NULL)
+        ON DUPLICATE KEY UPDATE
+          cancel_count = 0,
+          is_blacklisted = 0,
           blacklisted_at = NULL,
           blacklist_reason = NULL
-      WHERE id = :uid
-      LIMIT 1
-    ");
-    $upd->execute([':uid' => $userId]);
+      ");
+    $upd->execute([':uid' => $userId, ':cid' => $clinicId]);
 
     $pdo->commit();
     flash_set('success', 'User has been unblacklisted.');
@@ -67,14 +73,16 @@ try {
   }
 
   $upd = $pdo->prepare("
-    UPDATE accounts
-    SET is_blacklisted = 1,
-        blacklisted_at = NOW(),
-        blacklist_reason = 'Blacklisted by clinic admin'
-    WHERE id = :uid
-    LIMIT 1
+    INSERT INTO account_clinic_blacklist
+      (account_id, clinic_id, cancel_count, is_blacklisted, blacklisted_at, blacklist_reason)
+    VALUES
+      (:uid, :cid, 0, 1, NOW(), 'Blacklisted by clinic admin')
+    ON DUPLICATE KEY UPDATE
+      is_blacklisted = 1,
+      blacklisted_at = NOW(),
+      blacklist_reason = 'Blacklisted by clinic admin'
   ");
-  $upd->execute([':uid' => $userId]);
+  $upd->execute([':uid' => $userId, ':cid' => $clinicId]);
 
   $pdo->commit();
   flash_set('success', 'User has been blacklisted.');

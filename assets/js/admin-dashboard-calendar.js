@@ -884,7 +884,6 @@ cDate?.addEventListener("change", async () => {
 mResched?.addEventListener("click", () => {
   if (!selectedAppointment) return;
 
-  // use appointment's date as default when rescheduling
   if (selectedAppointment.date) {
     const p = String(selectedAppointment.date).split("-");
     if (p.length === 3) {
@@ -895,12 +894,13 @@ mResched?.addEventListener("click", () => {
 
   setCreateModeResched(selectedAppointment);
 
-  // prefill patient email
   if (cEmail) cEmail.value = String(selectedAppointment.patient_email || "");
-
-  // clear doctor/time (admin chooses new)
   if (cDoctor) cDoctor.value = "0";
   if (cTime) cTime.innerHTML = '<option value="">Select time</option>';
+  if (cNotes) cNotes.value = "";
+
+  const cReason = document.getElementById("admRescheduleReason");
+  if (cReason) cReason.value = "";
 
   closeModal();
   openCreate();
@@ -910,14 +910,15 @@ mResched?.addEventListener("click", () => {
 createBtn?.addEventListener("click", () => {
   setCreateModeCreate();
 
-  // default to currently selected calendar day if any
   if (!selectedDate) selectedDate = new Date();
 
-  // clear fields
   if (cEmail) cEmail.value = "";
   if (cDoctor) cDoctor.value = "0";
   if (cTime) cTime.innerHTML = '<option value="">Select time</option>';
   if (cNotes) cNotes.value = "";
+
+  const cReason = document.getElementById("admRescheduleReason");
+  if (cReason) cReason.value = "";
 
   openCreate();
 });
@@ -931,8 +932,9 @@ cSave?.addEventListener("click", async () => {
   const did = parseInt(cDoctor?.value || "0", 10);
   const time = String(cTime?.value || "").trim();
   const notes = String(cNotes?.value || "").trim();
+  const reason = String(document.getElementById("admRescheduleReason")?.value || "").trim();
 
-  // ✅ use date from date input
+  // use date from date input
   const dateStr = String(cDate?.value || "").trim() || (selectedDate ? toYMD(selectedDate) : "");
 
   if (!email) return alert("Patient email is required");
@@ -947,9 +949,21 @@ cSave?.addEventListener("click", async () => {
   try {
     const apptId = parseInt(String(cApptId?.value || "0"), 10) || 0;
 
-    // ✅ ensure selectedDate matches chosen date (so refreshAfterAction updates correct day)
+    console.log("apptId =", apptId);
+    console.log("reason =", reason);
+
+    if (apptId > 0 && !reason) {
+      cMsg.textContent = "Reschedule reason is required.";
+      cMsg.className = "mt-3 text-xs text-rose-600";
+      cSave.disabled = false;
+      return;
+    }
+
+    // ensure selectedDate matches chosen date
     const p = dateStr.split("-");
-    if (p.length === 3) selectedDate = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    if (p.length === 3) {
+      selectedDate = new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]));
+    }
 
     const res = await fetch(`${BASE_URL}/api/admin_create_appointment.php`, {
       method: "POST",
@@ -961,7 +975,8 @@ cSave?.addEventListener("click", async () => {
         doctor_id: did,
         date: dateStr,
         time,
-        notes
+        notes,
+        reason: apptId > 0 ? reason : ""
       })
     });
 
@@ -969,8 +984,9 @@ cSave?.addEventListener("click", async () => {
     if (!res.ok) throw new Error(data.error || "Failed");
 
     cMsg.textContent = apptId > 0 ? "Appointment rescheduled." : "Appointment created.";
+    cMsg.className = "mt-3 text-xs text-emerald-600";
 
-    await refreshAfterAction(); // updates month + right panel instantly
+    await refreshAfterAction();
     closeCreate();
   } catch (e) {
     cMsg.textContent = String(e.message || e);
